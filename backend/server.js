@@ -76,4 +76,23 @@ try {
 }
 });
   
+// Ensure this code is before your app.listen() call.
+app.put('/api/playerProfiles/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rankings, comments } = req.body;
+      const updatedProfile = await PlayerProfile.findByIdAndUpdate(
+        id,
+        { $set: { rankings: rankings, comments: comments } },
+        { new: true, runValidators: true }
+      );
+      if (!updatedProfile) {
+        return res.status(404).json({ error: 'Profile not found' });
+      }
+      res.json(updatedProfile);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
   
