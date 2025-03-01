@@ -1,11 +1,15 @@
-import React from 'react';
-import ProfileRankingPage from './components/ProfileRankingPage';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProfileRankingPage from './ProfileRankingPage';
+import PlayerHistoryPage from './PlayerHistoryPage';
 
 function App() {
   return (
-    <div className="App">
-      <ProfileRankingPage />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<ProfileRankingPage />} />
+        <Route path="/player/:id/history" element={<PlayerHistoryPage />} />
+      </Routes>
+    </Router>
   );
 }
 

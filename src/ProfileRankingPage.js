@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 // import rich text editor styles
-import '../App.css'; // if you have custom styles
-
+import './App.css'; // if you have custom styles
+import { Link } from 'react-router-dom';
 // Use the correct backend port.
 const serverAddress = 'http://localhost:5001';
 
@@ -116,6 +116,19 @@ function ProfileRankingPage() {
       console.error("Error adding player profile:", error);
     }
   };
+ 
+  // Before your return statement in the component, compute sorted profile IDs:
+  const sortedProfileIds = Object.keys(profiles).sort((a, b) => {
+    const sumA = rankingValues[a]
+      ? Object.values(rankingValues[a]).reduce((total, value) => total + value, 0)
+      : 0;
+    const sumB = rankingValues[b]
+      ? Object.values(rankingValues[b]).reduce((total, value) => total + value, 0)
+      : 0;
+    // Descending order: highest total rating first.
+    return sumB - sumA;
+  });
+  
 
   // Rich text for picture preview is handled similarly.
   const handlePictureChange = (e) => {
@@ -126,18 +139,27 @@ function ProfileRankingPage() {
     reader.readAsDataURL(file);
   };
 
-  // Unified update function: updates both rankings and comments.
   const updateProfileForStudent = async (profileId) => {
     const payload = {
       rankings: rankingValuesRef.current[profileId],
       comments: commentsRef.current[profileId]
     };
     try {
+      console.log(`${serverAddress}/api/playerProfiles/${profileId}`);
       const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      // Log response status for debugging
+      console.log(`Response status for profile ${profileId}:`, response.status);
+  
+      if (!response.ok) {
+        // If response is not OK, throw an error to be caught below.
+        const text = await response.text();
+        throw new Error(`HTTP error! Status: ${response.status} - ${text}`);
+      }
+  
       const updatedProfile = await response.json();
       console.log("Profile updated:", updatedProfile);
       // Optionally update local profiles state.
@@ -146,6 +168,7 @@ function ProfileRankingPage() {
       console.error("Error updating profile:", error);
     }
   };
+  
 
   // Debounced slider change handler.
   const handleSliderChange = (profileId, attr, value) => {
@@ -206,77 +229,107 @@ function ProfileRankingPage() {
   };
 
   return (
-    <div className="container" style={{ padding: '16px' }}>
+    <div className="table-container" style={{ padding: '16px' }}>
       <h1>Player Profile Ranking</h1>
-      <table style={{ width: '100%', tableLayout: 'fixed', textAlign: 'center', borderCollapse: 'collapse' }} border="1" cellPadding="8" cellSpacing="0">
-        <thead>
-          <tr>
-            <th style={{ width: '10%' }}>Player Name</th>
-            {attributes.map(attr => (
-              <th key={attr} style={{ width: `${70 / attributes.length}%` }}>{attr}</th>
-            ))}
-            <th style={{ width: '20%' }}>Comments</th>
-          </tr>
-          {/* New Player Form Row */}
-          <tr>
-            <td colSpan={attributes.length + 1}>
-              <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
-                <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
-                <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-                <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                <input type="file" accept="image/*" onChange={handlePictureChange} />
-                <button type="submit">Add Player</button>
-              </form>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.keys(profiles).length === 0 ? (
-            <tr>
-              <td colSpan={attributes.length + 1}>No player profiles available.</td>
-            </tr>
-          ) : (
-            Object.keys(profiles).map(id => (
-              <tr key={id}>
-                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {profiles[id].firstName} {profiles[id].lastName}
-                  {profiles[id].picture && <img src={profiles[id].picture} alt="Profile" width="50" style={{ marginLeft: '8px' }} />}
-                </td>
-                {attributes.map(attr => {
-                  const value = rankingValues[id] ? rankingValues[id][attr] : 0;
-                  return (
-                    <td key={attr}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ height: '150px', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={value}
-                            onChange={(e) => handleSliderChange(id, attr, e.target.value)}
-                            style={getVerticalSliderStyle(value)}
-                          />
-                        </div>
-                        <div>{value}</div>
-                      </div>
-                    </td>
-                  );
-                })}
-                <td style={{ textAlign: 'left' }}>
-                <textarea
-  rows="10"
-  style={{ width: '100%', padding: '8px' }}
-  placeholder="Enter your comments here..."
-  value={comments[id] || ""}
-  onChange={(e) => handleCommentChange(id, e.target.value)}
-/>
-                </td>
-              </tr>
-            ))
+      <table
+  style={{
+    width: '100%',
+    tableLayout: 'fixed',
+    textAlign: 'center',
+    borderCollapse: 'collapse'
+  }}
+  border="1"
+  cellPadding="8"
+  cellSpacing="0"
+>
+  <thead>
+    <tr>
+      <th style={{ width: '10%' }}>Player Name</th>
+      {attributes.map(attr => (
+        <th key={attr} style={{ width: `${60 / attributes.length}%` }}>{attr}</th>
+      ))}
+      <th style={{ width: '10%' }}>Total Rating</th>
+      <th style={{ width: '20%' }}>Comments</th>
+    </tr>
+    {/* New Player Form Row */}
+    <tr>
+      <td colSpan={attributes.length + 3}>
+        <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+          <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
+          <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
+          <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+          <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          <input type="file" accept="image/*" onChange={handlePictureChange} />
+          <button type="submit">Add Player</button>
+        </form>
+      </td>
+    </tr>
+  </thead>
+  <tbody>
+  {sortedProfileIds.length === 0 ? (
+    <tr>
+      <td colSpan={attributes.length + 3}>No player profiles available.</td>
+    </tr>
+  ) : (
+    sortedProfileIds.map((id) => (   // "id" is declared here as a parameter.
+      <tr key={id}>
+        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {profiles[id].firstName} {profiles[id].lastName}
+          {profiles[id].picture && (
+            <img
+              src={profiles[id].picture}
+              alt="Profile"
+              width="50"
+              style={{ marginLeft: '8px' }}
+            />
           )}
-        </tbody>
-      </table>
+        </td>
+        {attributes.map((attr) => {
+          const value = rankingValues[id] ? rankingValues[id][attr] : 0;
+          return (
+            <td key={attr}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ height: '150px', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={value}
+                    onChange={(e) => handleSliderChange(id, attr, e.target.value)}
+                    style={getVerticalSliderStyle(value)}
+                  />
+                </div>
+                <div>{value}</div>
+              </div>
+            </td>
+          );
+        })}
+        <td>
+          <strong>
+            {rankingValues[id]
+              ? Object.values(rankingValues[id]).reduce((sum, val) => sum + val, 0)
+              : 0}
+          </strong>
+        </td>
+        <td style={{ textAlign: 'left' }}>
+          <textarea
+            rows="6"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px' }}
+            placeholder="Enter comments..."
+            value={comments[id] || ""}
+            onChange={(e) => handleCommentChange(id, e.target.value)}
+          />
+          <br />
+          <Link to={`/player/${id}/history`}>View History</Link>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
+
+
+</table>
+
     </div>
   );
 }

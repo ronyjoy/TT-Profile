@@ -1,7 +1,9 @@
 // In your server.js or routes file
 const express = require('express');
 const mongoose = require('mongoose');
-
+// In your server.js (or routes file)
+const RankingHistory = require('./models/RankingHistory');
+const PlayerProfile = require('./models/PlayerProfile');
 const cors = require('cors');
 const app = express();
 
@@ -76,23 +78,49 @@ try {
 }
 });
   
-// Ensure this code is before your app.listen() call.
+
+
+
+
 app.put('/api/playerProfiles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rankings, comments } = req.body;
+    const updatedProfile = await PlayerProfile.findByIdAndUpdate(
+      id,
+      { $set: { rankings: rankings, comments: comments } },
+      { new: true, runValidators: true }
+    );
+    if (!updatedProfile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Record the ranking history (only for rankings)
+    if (rankings) {
+      const historyEntry = new RankingHistory({
+        playerId: id,
+        rankings: rankings
+      });
+      await historyEntry.save();
+    }
+
+    res.json(updatedProfile);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get('/api/playerProfiles/:id/rankingHistory', async (req, res) => {
     try {
       const { id } = req.params;
-      const { rankings, comments } = req.body;
-      const updatedProfile = await PlayerProfile.findByIdAndUpdate(
-        id,
-        { $set: { rankings: rankings, comments: comments } },
-        { new: true, runValidators: true }
-      );
-      if (!updatedProfile) {
-        return res.status(404).json({ error: 'Profile not found' });
-      }
-      res.json(updatedProfile);
+      const history = await RankingHistory.find({ playerId: id }).sort({ createdAt: 1 });
+      res.json(history);
     } catch (error) {
       res.status(400).json({ error: error.message });
     }
   });
+  
+
   
   

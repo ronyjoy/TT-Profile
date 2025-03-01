@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap');
+
 .App {
   text-align: center;
 }
@@ -41,7 +43,11 @@ html, body, #root {
   padding: 0;
   width: 100%;
 }
-
+th {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .container {
   width: 100%;
   padding: 16px;
@@ -99,3 +105,66 @@ html, body, #root {
   white-space: normal;   /* Allows wrapping */
   padding: 0 16px;       /* Optional: add horizontal padding */
 }
+/* Container for the table */
+.table-container {
+  margin: 20px auto;
+  max-width: 100%;
+  overflow-x: auto;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+/* Style the table */
+
+/* Responsive adjustments for small screens */
+@media (max-width: 600px) {
+  th, td {
+    padding: 10px;
+    font-size: 12px;
+  }
+}
+/* Overall table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Open Sans', sans-serif;
+  color: #333;
+}
+
+/* Table header styling */
+th {
+  padding: 12px 15px;
+  background-color: #4CAF50;
+  color: white;
+  text-transform: uppercase;
+  font-size: 12px;         /* Smaller font size for headers */
+  white-space: normal;     /* Allow text to wrap */
+  word-wrap: break-word;
+  border-bottom: 2px solid #388e3c;
+}
+
+/* Table body cells */
+td {
+  padding: 10px 12px;     /* Reduced padding */
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  font-size: 12px;        /* Smaller font size for rows */
+}
+
+/* Alternating row colors */
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Hover effect on rows */
+tr:hover {
+  background-color: #f1f1f1;
+}
+.table-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+}
+
