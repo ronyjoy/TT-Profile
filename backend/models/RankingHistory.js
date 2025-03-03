@@ -22,7 +22,11 @@ const rankingHistorySchema = new Schema({
     ServingTechnics: { type: Number, default: 0 },
     ReceivingTechnics: { type: Number, default: 0 },
     Chopblock: { type: Number, default: 0 },
-    Chopping: { type: Number, default: 0 }
+    Chopping: { type: Number, default: 0 },
+    Gameplay: { type: Number, default: 0 },
+    PracticeFocus: { type: Number, default: 0 },
+    Sportsmanship: { type: Number, default: 0 },
+    OverallAttitude: { type: Number, default: 0 }
   },
   createdAt: { type: Date, default: Date.now }
 });

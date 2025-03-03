@@ -9,7 +9,7 @@ const app = express();
 
 // Enable CORS for all origins (or specify allowed origin)
 app.use(cors());
-const PlayerProfile = require('./models/PlayerProfile'); // import the model
+
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*"); // Or specify "http://localhost:3000"

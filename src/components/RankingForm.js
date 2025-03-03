@@ -22,6 +22,8 @@ const attributes = [
   "Chopping"
 ];
 
+
+
 function RankingForm({ profiles, addRanking }) {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [ratings, setRatings] = useState(() => {

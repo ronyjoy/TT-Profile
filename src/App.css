@@ -136,13 +136,13 @@ table {
 /* Table header styling */
 th {
   padding: 12px 15px;
-  background-color: #4CAF50;
+  background-color: #06122f;
   color: white;
   text-transform: uppercase;
-  font-size: 12px;         /* Smaller font size for headers */
+  font-size: 10px;         /* Smaller font size for headers */
   white-space: normal;     /* Allow text to wrap */
   word-wrap: break-word;
-  border-bottom: 2px solid #388e3c;
+  border-bottom: 2px solid #710909;
 }
 
 /* Table body cells */
@@ -150,7 +150,7 @@ td {
   padding: 10px 12px;     /* Reduced padding */
   border-bottom: 1px solid #ddd;
   text-align: center;
-  font-size: 12px;        /* Smaller font size for rows */
+  font-size: 10px;        /* Smaller font size for rows */
 }
 
 /* Alternating row colors */
@@ -167,4 +167,65 @@ tr:hover {
   box-sizing: border-box;
   padding: 8px;
 }
+
+/* Custom slider style for arrow-shaped knob */
+/* For WebKit browsers (Chrome, Safari) */
+input[type="range"].arrow-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #fff;       /* background color of the knob */
+  border: 2px solid #000; /* border color */
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%); /* Arrow shape: point at top, flat at bottom */
+  cursor: pointer;
+}
+
+/* For Firefox */
+input[type="range"].arrow-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 2px solid #000;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  cursor: pointer;
+}
+
+/* Optional: Style the track (if desired) */
+input[type="range"].arrow-thumb::-webkit-slider-runnable-track {
+  height: 20px;
+  background: #ddd;
+}
+/* For WebKit browsers (Chrome, Safari) */
+input[type="range"].arrow-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--slider-color, #fff); /* Uses the inline variable */
+  border: 2px solid #000;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  cursor: pointer;
+}
+
+/* For Firefox */
+input[type="range"].arrow-thumb::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--slider-color, #fff);
+  border: 2px solid #000;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  cursor: pointer;
+}
+
+/* Optionally, style the track as well */
+input[type="range"].arrow-thumb::-webkit-slider-runnable-track {
+  height: 20px;
+  background: #ddd;
+}
+input[type="range"].arrow-thumb::-moz-range-track {
+  height: 20px;
+  background: #ddd;
+}
+
 

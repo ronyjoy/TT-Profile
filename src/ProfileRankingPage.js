@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-// import rich text editor styles
-import './App.css'; // if you have custom styles
-import { Link } from 'react-router-dom';
-// Use the correct backend port.
+import Slider from '@mui/material/Slider';
+import './App.css';
+
 const serverAddress = 'http://localhost:5001';
 
-// Define the ranking attributes (keys must match your schema exactly).
 const attributes = [
   "Footwork", 
   "ForehandDrive",
@@ -26,46 +24,73 @@ const attributes = [
   "Chopblock",
   "Chopping"
 ];
+const prettifyAttribute = (attr) => {
+  return attr.replace(/([A-Z])/g, ' $1').trim();
+};
+// Mapping attribute keys to header image paths
+const attributeDisplayNames = {
+  Footwork: "Foot Work",
+  ForehandDrive: "Forehand Drive",
+  BackhandDrive: "Backhand Drive",
+  ForehandLoop: "Forehand Loop",
+  BackhandLoop: "Backhand Loop",
+  ForehandBlock: "Forehand Block",
+  BackhandBlock: "Backhand Block",
+  BackhandPush: "Backhand Push",
+  ForehandPush: "Forehand Push",
+  ShortPushes: "Short Pushes",
+  LongPushes: "Long Pushes",
+  UnderspinLoop: "Underspin Loop",
+  CounterLooping: "Counter Looping",
+  PlayAwayFromTheTable: "Play Away From The Table",
+  ServingTechnics: "Serving Technics",
+  ReceivingTechnics: "Receiving Technics",
+  Chopblock: "Chopblock",
+  Chopping: "Chopping"
+};
+
+{attributes.map(attr => (
+  <th key={attr} style={{ width: `${70 / attributes.length}%` }}>
+    {attributeDisplayNames[attr] || prettifyAttribute(attr)}
+  </th>
+))}
 
 function ProfileRankingPage() {
-  // Local state for profiles and their ranking values.
+  // Profiles stored as an object keyed by profile id.
   const [profiles, setProfiles] = useState({});
+  // Ranking values per profile.
   const [rankingValues, setRankingValues] = useState({});
+  // Comments per profile (plain text).
   const [comments, setComments] = useState({});
 
-  // Refs to store the latest values for debouncing updates.
+  // Refs for debouncing auto-updates.
+  const autoUpdateTimers = useRef({});
   const rankingValuesRef = useRef(rankingValues);
   const commentsRef = useRef(comments);
-  const autoUpdateTimers = useRef({});
 
-  // Update refs when state changes.
   useEffect(() => {
     rankingValuesRef.current = rankingValues;
   }, [rankingValues]);
-  
   useEffect(() => {
     commentsRef.current = comments;
   }, [comments]);
 
-  // Fetch existing player profiles on mount.
+  // Fetch profiles from backend on mount.
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
         const response = await fetch(`${serverAddress}/api/playerProfiles`);
         const data = await response.json();
-        // Convert array to object keyed by id for easier state management.
         const profilesObj = {};
         const initialRankings = {};
         const initialComments = {};
         data.forEach(profile => {
           const id = profile._id || profile.id;
           profilesObj[id] = profile;
-          // Initialize rankings: use profile.rankings if it exists, otherwise zeros.
           initialRankings[id] = {};
           attributes.forEach(attr => {
             initialRankings[id][attr] = (profile.rankings && profile.rankings[attr]) || 0;
           });
-          // Initialize comments.
           initialComments[id] = profile.comments || "";
         });
         setProfiles(profilesObj);
@@ -78,20 +103,23 @@ function ProfileRankingPage() {
     fetchProfiles();
   }, []);
 
-  // Handler for adding a new player.
+  // New player form state.
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPicturePreview, setNewPicturePreview] = useState("");
+
   const handleAddProfile = async (e) => {
     e.preventDefault();
-    // Build new profile with minimal required fields.
     const newProfile = {
       profileType: "Student",
       firstName: newFirstName,
       lastName: newLastName,
-      phone: newPhone,         // Optional
-      email: newEmail,         // Optional
+      phone: newPhone,
+      email: newEmail,
       picture: newPicturePreview
-      // Your backend should default rankings to zeros and comments to empty.
     };
-
     try {
       const response = await fetch(`${serverAddress}/api/playerProfiles`, {
         method: 'POST',
@@ -106,7 +134,6 @@ function ProfileRankingPage() {
         [id]: attributes.reduce((acc, attr) => { acc[attr] = 0; return acc; }, {})
       }));
       setComments(prev => ({ ...prev, [id]: "" }));
-      // Clear form fields.
       setNewFirstName("");
       setNewLastName("");
       setNewPhone("");
@@ -116,21 +143,7 @@ function ProfileRankingPage() {
       console.error("Error adding player profile:", error);
     }
   };
- 
-  // Before your return statement in the component, compute sorted profile IDs:
-  const sortedProfileIds = Object.keys(profiles).sort((a, b) => {
-    const sumA = rankingValues[a]
-      ? Object.values(rankingValues[a]).reduce((total, value) => total + value, 0)
-      : 0;
-    const sumB = rankingValues[b]
-      ? Object.values(rankingValues[b]).reduce((total, value) => total + value, 0)
-      : 0;
-    // Descending order: highest total rating first.
-    return sumB - sumA;
-  });
-  
 
-  // Rich text for picture preview is handled similarly.
   const handlePictureChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -139,44 +152,33 @@ function ProfileRankingPage() {
     reader.readAsDataURL(file);
   };
 
+  // Auto-update function: updates both rankings and comments.
   const updateProfileForStudent = async (profileId) => {
     const payload = {
       rankings: rankingValuesRef.current[profileId],
       comments: commentsRef.current[profileId]
     };
     try {
-      console.log(`${serverAddress}/api/playerProfiles/${profileId}`);
       const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      // Log response status for debugging
-      console.log(`Response status for profile ${profileId}:`, response.status);
-  
-      if (!response.ok) {
-        // If response is not OK, throw an error to be caught below.
-        const text = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status} - ${text}`);
-      }
-  
       const updatedProfile = await response.json();
       console.log("Profile updated:", updatedProfile);
-      // Optionally update local profiles state.
       setProfiles(prev => ({ ...prev, [profileId]: updatedProfile }));
     } catch (error) {
       console.error("Error updating profile:", error);
     }
   };
-  
 
   // Debounced slider change handler.
-  const handleSliderChange = (profileId, attr, value) => {
+  const handleSliderChange = (profileId, attr, newValue) => {
     setRankingValues(prev => ({
       ...prev,
       [profileId]: {
         ...prev[profileId],
-        [attr]: parseInt(value, 10)
+        [attr]: newValue
       }
     }));
     if (autoUpdateTimers.current[profileId]) {
@@ -201,135 +203,88 @@ function ProfileRankingPage() {
     }, 500);
   };
 
-  // Local state for new player form fields.
-  const [newFirstName, setNewFirstName] = useState("");
-  const [newLastName, setNewLastName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPicturePreview, setNewPicturePreview] = useState("");
-
-  // Custom slider styling for vertical slider remains the same.
-  const getSliderColor = (value) => {
-    if (value < 33) return 'green';
-    else if (value < 66) return 'orange';
-    else return 'red';
-  };
-
-  const getVerticalSliderStyle = (value) => {
-    const color = getSliderColor(value);
-    return {
-      WebkitAppearance: 'none',
-      appearance: 'none',
-      width: '150px',  // track length
-      height: '20px',  // fixed track thickness
-      transform: 'rotate(-90deg)',
-      background: `linear-gradient(90deg, ${color} ${value}%, #ddd ${value}%)`,
-      outline: 'none'
-    };
+  // Helper to compute total rating.
+  const getTotalRating = (profileId) => {
+    if (!rankingValues[profileId]) return 0;
+    return Object.values(rankingValues[profileId]).reduce((sum, val) => sum + val, 0);
   };
 
   return (
-    <div className="table-container" style={{ padding: '16px' }}>
+    <div className="container" style={{ padding: '16px' }}>
       <h1>Player Profile Ranking</h1>
-      <table
-  style={{
-    width: '100%',
-    tableLayout: 'fixed',
-    textAlign: 'center',
-    borderCollapse: 'collapse'
-  }}
-  border="1"
-  cellPadding="8"
-  cellSpacing="0"
->
-  <thead>
-    <tr>
+      <table style={{ width: '100%', tableLayout: 'auto', textAlign: 'center', borderCollapse: 'collapse' }} border="1" cellPadding="8" cellSpacing="0">
+        <thead>
+        <tr>
       <th style={{ width: '10%' }}>Player Name</th>
       {attributes.map(attr => (
-        <th key={attr} style={{ width: `${60 / attributes.length}%` }}>{attr}</th>
+        
+        <th key={attr} style={{ width: `${60 / attributes.length}%` }}> {attributeDisplayNames[attr] || prettifyAttribute(attr)}</th>
       ))}
       <th style={{ width: '10%' }}>Total Rating</th>
-      <th style={{ width: '20%' }}>Comments</th>
+     <th style={{ width: '20%' }}>Comments</th>
     </tr>
-    {/* New Player Form Row */}
-    <tr>
-      <td colSpan={attributes.length + 3}>
-        <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-          <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
-          <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
-          <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-          <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-          <input type="file" accept="image/*" onChange={handlePictureChange} />
-          <button type="submit">Add Player</button>
-        </form>
-      </td>
-    </tr>
-  </thead>
-  <tbody>
-  {sortedProfileIds.length === 0 ? (
-    <tr>
-      <td colSpan={attributes.length + 3}>No player profiles available.</td>
-    </tr>
-  ) : (
-    sortedProfileIds.map((id) => (   // "id" is declared here as a parameter.
-      <tr key={id}>
-        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {profiles[id].firstName} {profiles[id].lastName}
-          {profiles[id].picture && (
-            <img
-              src={profiles[id].picture}
-              alt="Profile"
-              width="50"
-              style={{ marginLeft: '8px' }}
-            />
-          )}
-        </td>
-        {attributes.map((attr) => {
-          const value = rankingValues[id] ? rankingValues[id][attr] : 0;
-          return (
-            <td key={attr}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ height: '150px', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={value}
-                    onChange={(e) => handleSliderChange(id, attr, e.target.value)}
-                    style={getVerticalSliderStyle(value)}
-                  />
-                </div>
-                <div>{value}</div>
-              </div>
+          {/* New Player Form Row */}
+          <tr>
+            <td colSpan={attributes.length + 3}>
+              <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
+                <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
+                <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+                <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+                <input type="file" accept="image/*" onChange={handlePictureChange} />
+                <button type="submit">Add Player</button>
+              </form>
             </td>
-          );
-        })}
-        <td>
-          <strong>
-            {rankingValues[id]
-              ? Object.values(rankingValues[id]).reduce((sum, val) => sum + val, 0)
-              : 0}
-          </strong>
-        </td>
-        <td style={{ textAlign: 'left' }}>
-          <textarea
-            rows="6"
-            style={{ width: '100%', boxSizing: 'border-box', padding: '8px' }}
-            placeholder="Enter comments..."
-            value={comments[id] || ""}
-            onChange={(e) => handleCommentChange(id, e.target.value)}
-          />
-          <br />
-          <Link to={`/player/${id}/history`}>View History</Link>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.keys(profiles).length === 0 ? (
+            <tr>
+              <td colSpan={attributes.length + 3}>No player profiles available.</td>
+            </tr>
+          ) : (
+            Object.keys(profiles).map(id => (
+              <tr key={id}>
+                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {profiles[id].firstName} {profiles[id].lastName}
+                  {profiles[id].picture && <img src={profiles[id].picture} alt="Profile" width="50" style={{ marginLeft: '8px' }} />}
+                </td>
+                {attributes.map(attr => {
+                  const value = rankingValues[id] ? rankingValues[id][attr] : 0;
+                  return (
+                    <td key={attr}>
+  <div style={{ height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <Slider
+      orientation="vertical"
+      value={value}
+      onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
+      valueLabelDisplay="auto"
+      aria-label={attr}
+      min={0}
+      max={100}
+      sx={{ height: 150 }}
+    />
+  </div>
+  <div>{value}</div>
+</td>
 
-
-</table>
-
+                  );
+                })}
+                <td style={{ fontWeight: 'bold' }}>{getTotalRating(id)}</td>
+                <td style={{ textAlign: 'left' }}>
+                  <textarea
+                    rows="8"
+                    style={{ width: '100%', padding: '8px' }}
+                    placeholder="Enter your comments..."
+                    value={comments[id] || ""}
+                    onChange={(e) => handleCommentChange(id, e.target.value)}
+                  />
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

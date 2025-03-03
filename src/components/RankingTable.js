@@ -1,25 +1,32 @@
 import React from 'react';
 
 const attributes = [
-  "Footwork", 
-  "Forehand Drive",
-  "Backhand Drive",
-  "Forehand Loop",
-  "Backhand Loop",
-  "Forehand Block",
-  "Backhand Block",
-  "Backhand Push",
-  "Forehand Push",
-  "Short Pushes",
-  "Long Pushes",
-  "Underspin Loop",
-  "Counter Looping",
-  "Play Away From The Table",
-  "Serving Technics",
-  "Receiving Technics",
-  "Chopblock",
-  "Chopping"
-];
+    "Footwork", 
+    "ForehandDrive",
+    "BackhandDrive",
+    "ForehandLoop",
+    "BackhandLoop",
+    "ForehandBlock",
+    "BackhandBlock",
+    "BackhandPush",
+    "ForehandPush",
+    "ShortPushes",
+    "LongPushes",
+    "UnderspinLoop",
+    "CounterLooping",
+    "PlayAwayFromTheTable",
+    "ServingTechnics",
+    "ReceivingTechnics",
+    "Chopblock",
+    "Chopping",
+    "Gameplay",
+    "PracticeFocus",
+    "Sportsmanship",
+    "OverallAttitude"
+  ];
+  
+  
+  
 
 function RankingTable({ rankings, profiles }) {
   // Helper function to get a student's name from their profile

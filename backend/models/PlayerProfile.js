@@ -26,9 +26,13 @@ const playerProfileSchema = new Schema({
     ServingTechnics: { type: Number, default: 0 },
     ReceivingTechnics: { type: Number, default: 0 },
     Chopblock: { type: Number, default: 0 },
-    Chopping: { type: Number, default: 0 }
+    Chopping: { type: Number, default: 0 },
+    Gameplay: { type: Number, default: 0 },
+    PracticeFocus: { type: Number, default: 0 },
+    Sportsmanship: { type: Number, default: 0 },
+    OverallAttitude: { type: Number, default: 0 }
   },
-  comments: { type: String, default: "" } // Ensure this field exists
+  comments: { type: String, default: "" }
 });
 
 module.exports = mongoose.model('PlayerProfile', playerProfileSchema);
