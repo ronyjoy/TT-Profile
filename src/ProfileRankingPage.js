@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
 import './App.css';
 
 const serverAddress = 'http://localhost:5001';
 
+// These are the attribute keys used in your state and schema.
 const attributes = [
   "Footwork", 
   "ForehandDrive",
@@ -24,14 +26,12 @@ const attributes = [
   "Chopblock",
   "Chopping"
 ];
-const prettifyAttribute = (attr) => {
-  return attr.replace(/([A-Z])/g, ' $1').trim();
-};
-// Mapping attribute keys to header image paths
-const attributeDisplayNames = {
+
+// Mapping attribute keys to the header text you want to display.
+const attributeHeadings = {
   Footwork: "Foot Work",
-  ForehandDrive: "Forehand Drive",
-  BackhandDrive: "Backhand Drive",
+  ForehandDrive: "Forehand Power",
+  BackhandDrive: "Backhand Force",
   ForehandLoop: "Forehand Loop",
   BackhandLoop: "Backhand Loop",
   ForehandBlock: "Forehand Block",
@@ -42,28 +42,24 @@ const attributeDisplayNames = {
   LongPushes: "Long Pushes",
   UnderspinLoop: "Underspin Loop",
   CounterLooping: "Counter Looping",
-  PlayAwayFromTheTable: "Play Away From The Table",
-  ServingTechnics: "Serving Technics",
-  ReceivingTechnics: "Receiving Technics",
+  PlayAwayFromTheTable: "Play Away",
+  ServingTechnics: "Serving",
+  ReceivingTechnics: "Receiving",
   Chopblock: "Chopblock",
   Chopping: "Chopping"
 };
 
-{attributes.map(attr => (
-  <th key={attr} style={{ width: `${70 / attributes.length}%` }}>
-    {attributeDisplayNames[attr] || prettifyAttribute(attr)}
-  </th>
-))}
-
 function ProfileRankingPage() {
-  // Profiles stored as an object keyed by profile id.
+  // Profiles stored as an object keyed by id.
   const [profiles, setProfiles] = useState({});
   // Ranking values per profile.
   const [rankingValues, setRankingValues] = useState({});
   // Comments per profile (plain text).
   const [comments, setComments] = useState({});
+  // State to control reordering.
+  const [sortByTotal, setSortByTotal] = useState(false);
 
-  // Refs for debouncing auto-updates.
+  // Refs for debouncing updates.
   const autoUpdateTimers = useRef({});
   const rankingValuesRef = useRef(rankingValues);
   const commentsRef = useRef(comments);
@@ -71,11 +67,12 @@ function ProfileRankingPage() {
   useEffect(() => {
     rankingValuesRef.current = rankingValues;
   }, [rankingValues]);
+  
   useEffect(() => {
     commentsRef.current = comments;
   }, [comments]);
 
-  // Fetch profiles from backend on mount.
+  // Fetch profiles from the backend on mount.
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -152,7 +149,7 @@ function ProfileRankingPage() {
     reader.readAsDataURL(file);
   };
 
-  // Auto-update function: updates both rankings and comments.
+  // Update profile with both rankings and comments.
   const updateProfileForStudent = async (profileId) => {
     const payload = {
       rankings: rankingValuesRef.current[profileId],
@@ -209,20 +206,32 @@ function ProfileRankingPage() {
     return Object.values(rankingValues[profileId]).reduce((sum, val) => sum + val, 0);
   };
 
+  // Determine profile order.
+  const profileIds = Object.keys(profiles);
+  const sortedIds = sortByTotal
+    ? [...profileIds].sort((a, b) => getTotalRating(b) - getTotalRating(a))
+    : profileIds;
+
   return (
     <div className="container" style={{ padding: '16px' }}>
       <h1>Player Profile Ranking</h1>
+      <div style={{ marginBottom: '16px' }}>
+        <button onClick={() => setSortByTotal(!sortByTotal)}>
+          {sortByTotal ? "Show Original Order" : "Reorder by Total Rating"}
+        </button>
+      </div>
       <table style={{ width: '100%', tableLayout: 'auto', textAlign: 'center', borderCollapse: 'collapse' }} border="1" cellPadding="8" cellSpacing="0">
         <thead>
-        <tr>
-      <th style={{ width: '10%' }}>Player Name</th>
-      {attributes.map(attr => (
-        
-        <th key={attr} style={{ width: `${60 / attributes.length}%` }}> {attributeDisplayNames[attr] || prettifyAttribute(attr)}</th>
-      ))}
-      <th style={{ width: '10%' }}>Total Rating</th>
-     <th style={{ width: '20%' }}>Comments</th>
-    </tr>
+          <tr>
+            <th>Player Name</th>
+            {attributes.map(attr => (
+              <th key={attr}>
+                <div>{attributeHeadings[attr]}</div>
+              </th>
+            ))}
+            <th>Total Rating</th>
+            <th>Comments</th>
+          </tr>
           {/* New Player Form Row */}
           <tr>
             <td colSpan={attributes.length + 3}>
@@ -238,36 +247,37 @@ function ProfileRankingPage() {
           </tr>
         </thead>
         <tbody>
-          {Object.keys(profiles).length === 0 ? (
+          {sortedIds.length === 0 ? (
             <tr>
               <td colSpan={attributes.length + 3}>No player profiles available.</td>
             </tr>
           ) : (
-            Object.keys(profiles).map(id => (
+            sortedIds.map(id => (
               <tr key={id}>
                 <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {profiles[id].firstName} {profiles[id].lastName}
+                  <Link to={`/rating-history/${id}`}>
+                    {profiles[id].firstName} {profiles[id].lastName}
+                  </Link>
                   {profiles[id].picture && <img src={profiles[id].picture} alt="Profile" width="50" style={{ marginLeft: '8px' }} />}
                 </td>
                 {attributes.map(attr => {
                   const value = rankingValues[id] ? rankingValues[id][attr] : 0;
                   return (
                     <td key={attr}>
-  <div style={{ height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <Slider
-      orientation="vertical"
-      value={value}
-      onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
-      valueLabelDisplay="auto"
-      aria-label={attr}
-      min={0}
-      max={100}
-      sx={{ height: 150 }}
-    />
-  </div>
-  <div>{value}</div>
-</td>
-
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Slider
+                          orientation="vertical"
+                          value={value}
+                          onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
+                          valueLabelDisplay="auto"
+                          aria-label={attr}
+                          min={0}
+                          max={100}
+                          sx={{ height: 150 }}
+                        />
+                        <div>{value}</div>
+                      </div>
+                    </td>
                   );
                 })}
                 <td style={{ fontWeight: 'bold' }}>{getTotalRating(id)}</td>
