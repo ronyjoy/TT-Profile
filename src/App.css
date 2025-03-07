@@ -54,10 +54,7 @@ th {
   box-sizing: border-box;
 }
 
-.table-container {
-  width: 100%;
-  overflow-x: auto;
-}
+
 /* Style the slider track */
 .custom-range {
   -webkit-appearance: none;
@@ -227,5 +224,18 @@ input[type="range"].arrow-thumb::-moz-range-track {
   height: 20px;
   background: #ddd;
 }
+.table-container {
+  max-height: 80vh; /* Adjust as needed */
+  overflow-y: auto;
+}
+
+.sticky-header th {
+  position: sticky;
+  top: 0;
+  background: #fff; /* or any background color that matches your design */
+  z-index: 2;
+  border-bottom: 2px solid #ccc; /* optional separator */
+}
+
 
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
+import Header from './components/Header';
 import './App.css';
 
 const serverAddress = 'http://localhost:5001';
 
-// These are the attribute keys used in your state and schema.
+// Attribute keys used in your state and schema.
 const attributes = [
   "Footwork", 
   "ForehandDrive",
@@ -27,7 +28,7 @@ const attributes = [
   "Chopping"
 ];
 
-// Mapping attribute keys to the header text you want to display.
+// Mapping attribute keys to the display text for headers.
 const attributeHeadings = {
   Footwork: "Foot Work",
   ForehandDrive: "Forehand Power",
@@ -67,7 +68,7 @@ function ProfileRankingPage() {
   useEffect(() => {
     rankingValuesRef.current = rankingValues;
   }, [rankingValues]);
-  
+
   useEffect(() => {
     commentsRef.current = comments;
   }, [comments]);
@@ -206,95 +207,101 @@ function ProfileRankingPage() {
     return Object.values(rankingValues[profileId]).reduce((sum, val) => sum + val, 0);
   };
 
-  // Determine profile order.
+  // Determine the order of profiles.
   const profileIds = Object.keys(profiles);
   const sortedIds = sortByTotal
     ? [...profileIds].sort((a, b) => getTotalRating(b) - getTotalRating(a))
     : profileIds;
 
+  // Total columns in the main data row (Player Name + attribute columns + Total Rating).
+  const totalColumns = 1 + attributes.length + 1;
+
   return (
     <div className="container" style={{ padding: '16px' }}>
-      <h1>Player Profile Ranking</h1>
-      <div style={{ marginBottom: '16px' }}>
-        <button onClick={() => setSortByTotal(!sortByTotal)}>
-          {sortByTotal ? "Show Original Order" : "Reorder by Total Rating"}
-        </button>
+      {/* Frozen Header Component with column headings */}
+      <Header
+        sortByTotal={sortByTotal}
+        toggleSort={() => setSortByTotal(!sortByTotal)}
+        attributeHeadings={attributeHeadings}
+      />
+
+      {/* New Player Form */}
+      <div style={{ margin: '16px 0' }}>
+        <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+          <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
+          <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
+          <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
+          <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          <input type="file" accept="image/*" onChange={handlePictureChange} />
+          <button type="submit">Add Player</button>
+        </form>
       </div>
-      <table style={{ width: '100%', tableLayout: 'auto', textAlign: 'center', borderCollapse: 'collapse' }} border="1" cellPadding="8" cellSpacing="0">
-        <thead>
-          <tr>
-            <th>Player Name</th>
-            {attributes.map(attr => (
-              <th key={attr}>
-                <div>{attributeHeadings[attr]}</div>
-              </th>
-            ))}
-            <th>Total Rating</th>
-            <th>Comments</th>
-          </tr>
-          {/* New Player Form Row */}
-          <tr>
-            <td colSpan={attributes.length + 3}>
-              <form onSubmit={handleAddProfile} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                <input type="text" placeholder="First Name" value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} required />
-                <input type="text" placeholder="Last Name" value={newLastName} onChange={(e) => setNewLastName(e.target.value)} required />
-                <input type="text" placeholder="Phone (optional)" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} />
-                <input type="email" placeholder="Email (optional)" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-                <input type="file" accept="image/*" onChange={handlePictureChange} />
-                <button type="submit">Add Player</button>
-              </form>
-            </td>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedIds.length === 0 ? (
-            <tr>
-              <td colSpan={attributes.length + 3}>No player profiles available.</td>
-            </tr>
-          ) : (
-            sortedIds.map(id => (
-              <tr key={id}>
-                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <Link to={`/rating-history/${id}`}>
-                    {profiles[id].firstName} {profiles[id].lastName}
-                  </Link>
-                  {profiles[id].picture && <img src={profiles[id].picture} alt="Profile" width="50" style={{ marginLeft: '8px' }} />}
-                </td>
-                {attributes.map(attr => {
-                  const value = rankingValues[id] ? rankingValues[id][attr] : 0;
-                  return (
-                    <td key={attr}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <Slider
-                          orientation="vertical"
-                          value={value}
-                          onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
-                          valueLabelDisplay="auto"
-                          aria-label={attr}
-                          min={0}
-                          max={100}
-                          sx={{ height: 150 }}
-                        />
-                        <div>{value}</div>
-                      </div>
-                    </td>
-                  );
-                })}
-                <td style={{ fontWeight: 'bold' }}>{getTotalRating(id)}</td>
-                <td style={{ textAlign: 'left' }}>
-                  <textarea
-                    rows="8"
-                    style={{ width: '100%', padding: '8px' }}
-                    placeholder="Enter your comments..."
-                    value={comments[id] || ""}
-                    onChange={(e) => handleCommentChange(id, e.target.value)}
-                  />
-                </td>
+
+      {/* Scrollable Table Body */}
+      <div className="table-container">
+        <table style={{ width: '100%', tableLayout: 'auto', textAlign: 'center', borderCollapse: 'collapse' }} border="1" cellPadding="8" cellSpacing="0">
+          <tbody>
+            {sortedIds.length === 0 ? (
+              <tr>
+                <td colSpan={totalColumns}>No player profiles available.</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              sortedIds.map(id => (
+                <React.Fragment key={id}>
+                  {/* Main Data Row */}
+                  <tr>
+                    <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Link to={`/rating-history/${id}`}>
+                        {profiles[id].firstName} {profiles[id].lastName}
+                      </Link>
+                      {profiles[id].picture && (
+                        <img src={profiles[id].picture} alt="Profile" width="50" style={{ marginLeft: '8px' }} />
+                      )}
+                    </td>
+                    {attributes.map(attr => {
+                      const value = rankingValues[id] ? rankingValues[id][attr] : 0;
+                      return (
+                        <td key={attr}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Slider
+                              orientation="vertical"
+                              value={value}
+                              onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
+                              valueLabelDisplay="auto"
+                              aria-label={attr}
+                              min={0}
+                              max={100}
+                              sx={{ height: 150 }}
+                            />
+                            <div>{value}</div>
+                            {/* Add the attribute heading at the slider bottom */}
+                            <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                              {attributeHeadings[attr]}
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
+                    <td style={{ fontWeight: 'bold' }}>{getTotalRating(id)}</td>
+                  </tr>
+                  {/* Comment Row */}
+                  <tr>
+                    <td colSpan={totalColumns} style={{ textAlign: 'left', padding: '8px' }}>
+                      <textarea
+                        rows="4"
+                        style={{ width: '100%', padding: '8px' }}
+                        placeholder="Enter your comments..."
+                        value={comments[id] || ""}
+                        onChange={(e) => handleCommentChange(id, e.target.value)}
+                      />
+                    </td>
+                  </tr>
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
