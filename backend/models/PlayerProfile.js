@@ -1,14 +1,21 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const playerProfileSchema = new Schema({
-  profileType: { type: String, default: 'Student' },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  phone: String,
-  email: String,
-  picture: String,
-  rankings: {
+const playerProfileSchema = new mongoose.Schema({
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    phone: String,
+    email: String,
+    picture: String,
+    profileType: { type: String, default: "Student" },
+    coachRankings: {
+      type: Map,
+      of: coachRatingsSchema,
+      default: {}
+    },
+    comments: { type: String, default: "" }
+  });
+const coachRatingsSchema = new mongoose.Schema({
     Footwork: { type: Number, default: 0 },
     ForehandDrive: { type: Number, default: 0 },
     BackhandDrive: { type: Number, default: 0 },
@@ -31,8 +38,6 @@ const playerProfileSchema = new Schema({
     PracticeFocus: { type: Number, default: 0 },
     Sportsmanship: { type: Number, default: 0 },
     OverallAttitude: { type: Number, default: 0 }
-  },
-  comments: { type: String, default: "" }
-});
+  }, { _id: false });
 
 module.exports = mongoose.model('PlayerProfile', playerProfileSchema);

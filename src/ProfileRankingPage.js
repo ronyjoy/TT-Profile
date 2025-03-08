@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
-import Header from './components/Header';
+import Header from './Header';
 import './App.css';
 
 const serverAddress = 'http://localhost:5001';
 
-// Attribute keys used in your state and schema.
+// Define the attribute keys (must match your DB schema for ratings)
 const attributes = [
   "Footwork", 
   "ForehandDrive",
@@ -28,7 +28,7 @@ const attributes = [
   "Chopping"
 ];
 
-// Mapping attribute keys to the display text for headers.
+// Mapping attribute keys to display headings.
 const attributeHeadings = {
   Footwork: "Foot Work",
   ForehandDrive: "Forehand Power",
@@ -51,16 +51,21 @@ const attributeHeadings = {
 };
 
 function ProfileRankingPage() {
-  // Profiles stored as an object keyed by id.
+  // State for player profiles.
   const [profiles, setProfiles] = useState({});
-  // Ranking values per profile.
+  // For each player, store coach-specific ratings.
+  // rankingValues[playerId] = { coach1: { Footwork: 50, ... }, coach2: { Footwork: 60, ... } }
   const [rankingValues, setRankingValues] = useState({});
-  // Comments per profile (plain text).
+  // Comments per player.
   const [comments, setComments] = useState({});
-  // State to control reordering.
+  // Control ordering.
   const [sortByTotal, setSortByTotal] = useState(false);
+  // Coach list and selected coach.
+  const [coaches, setCoaches] = useState([]);
+  // "academy" means average view; otherwise, a specific coach ID.
+  const [selectedCoach, setSelectedCoach] = useState("academy");
 
-  // Refs for debouncing updates.
+  // Refs for debouncing.
   const autoUpdateTimers = useRef({});
   const rankingValuesRef = useRef(rankingValues);
   const commentsRef = useRef(comments);
@@ -73,7 +78,7 @@ function ProfileRankingPage() {
     commentsRef.current = comments;
   }, [comments]);
 
-  // Fetch profiles from the backend on mount.
+  // Fetch player profiles from backend.
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -85,20 +90,26 @@ function ProfileRankingPage() {
         data.forEach(profile => {
           const id = profile._id || profile.id;
           profilesObj[id] = profile;
-          initialRankings[id] = {};
-          attributes.forEach(attr => {
-            initialRankings[id][attr] = (profile.rankings && profile.rankings[attr]) || 0;
-          });
+          // Assume backend stores coach-specific ratings in profile.coachRankings
+          initialRankings[id] = profile.coachRankings || {};
           initialComments[id] = profile.comments || "";
         });
         setProfiles(profilesObj);
         setRankingValues(initialRankings);
         setComments(initialComments);
       } catch (error) {
-        console.error("Error fetching player profiles:", error);
+        console.error("Error fetching profiles:", error);
       }
     };
     fetchProfiles();
+  }, []);
+
+  // Simulate fetching coach list.
+  useEffect(() => {
+    setCoaches([
+      { id: "coach1", name: "Coach One" },
+      { id: "coach2", name: "Coach Two" }
+    ]);
   }, []);
 
   // New player form state.
@@ -127,10 +138,8 @@ function ProfileRankingPage() {
       const savedProfile = await response.json();
       const id = savedProfile._id || savedProfile.id;
       setProfiles(prev => ({ ...prev, [id]: savedProfile }));
-      setRankingValues(prev => ({
-        ...prev,
-        [id]: attributes.reduce((acc, attr) => { acc[attr] = 0; return acc; }, {})
-      }));
+      // Initialize with an empty object for coach-specific data.
+      setRankingValues(prev => ({ ...prev, [id]: {} }));
       setComments(prev => ({ ...prev, [id]: "" }));
       setNewFirstName("");
       setNewLastName("");
@@ -138,7 +147,7 @@ function ProfileRankingPage() {
       setNewEmail("");
       setNewPicturePreview("");
     } catch (error) {
-      console.error("Error adding player profile:", error);
+      console.error("Error adding profile:", error);
     }
   };
 
@@ -150,12 +159,19 @@ function ProfileRankingPage() {
     reader.readAsDataURL(file);
   };
 
-  // Update profile with both rankings and comments.
+  // Updated PUT endpoint call to update the coach-specific data.
   const updateProfileForStudent = async (profileId) => {
+    if (selectedCoach === "academy") return; // In academy view, do not update
+    // Get the current coach's data.
+    const coachData = rankingValuesRef.current[profileId]?.[selectedCoach] || {};
     const payload = {
-      rankings: rankingValuesRef.current[profileId],
+      coachRankings: {
+        ...(rankingValuesRef.current[profileId] || {}),
+        [selectedCoach]: coachData
+      },
       comments: commentsRef.current[profileId]
     };
+    console.log("Payload to update for profile", profileId, ":", payload);
     try {
       const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
         method: 'PUT',
@@ -165,20 +181,30 @@ function ProfileRankingPage() {
       const updatedProfile = await response.json();
       console.log("Profile updated:", updatedProfile);
       setProfiles(prev => ({ ...prev, [profileId]: updatedProfile }));
+      setRankingValues(prev => ({
+        ...prev,
+        [profileId]: updatedProfile.coachRankings || {}
+      }));
     } catch (error) {
       console.error("Error updating profile:", error);
     }
   };
 
-  // Debounced slider change handler.
+  // Handle slider changes.
   const handleSliderChange = (profileId, attr, newValue) => {
+    if (selectedCoach === "academy") return; // Read-only in academy view
+    // Update the nested object for the selected coach.
     setRankingValues(prev => ({
       ...prev,
       [profileId]: {
         ...prev[profileId],
-        [attr]: newValue
+        [selectedCoach]: {
+          ...(prev[profileId][selectedCoach] || {}),
+          [attr]: newValue
+        }
       }
     }));
+    // Debounce update.
     if (autoUpdateTimers.current[profileId]) {
       clearTimeout(autoUpdateTimers.current[profileId]);
     }
@@ -187,8 +213,9 @@ function ProfileRankingPage() {
     }, 500);
   };
 
-  // Debounced comment change handler.
+  // Handle comment changes.
   const handleCommentChange = (profileId, value) => {
+    if (selectedCoach === "academy") return; // Read-only in academy view
     setComments(prev => ({
       ...prev,
       [profileId]: value
@@ -201,29 +228,75 @@ function ProfileRankingPage() {
     }, 500);
   };
 
-  // Helper to compute total rating.
-  const getTotalRating = (profileId) => {
-    if (!rankingValues[profileId]) return 0;
-    return Object.values(rankingValues[profileId]).reduce((sum, val) => sum + val, 0);
+  // For academy view, compute the average for an attribute.
+  const getAcademyValue = (profileId, attr) => {
+    const coachData = rankingValues[profileId] || {};
+    let sum = 0, count = 0;
+    Object.values(coachData).forEach(coachRanking => {
+      const val = coachRanking[attr] || 0;
+      if (val > 0) {
+        sum += val;
+        count++;
+      }
+    });
+    return count > 0 ? Math.round(sum / count) : 0;
   };
 
-  // Determine the order of profiles.
+  // Get displayed slider value.
+  const getDisplayedValue = (profileId, attr) => {
+    if (selectedCoach === "academy") {
+      return getAcademyValue(profileId, attr);
+    } else {
+      return rankingValues[profileId] &&
+        rankingValues[profileId][selectedCoach] &&
+        rankingValues[profileId][selectedCoach][attr] !== undefined
+        ? rankingValues[profileId][selectedCoach][attr]
+        : 0;
+    }
+  };
+
+  // Compute total rating for a player.
+  const getTotalRating = (profileId) => {
+    if (selectedCoach === "academy") {
+      let total = 0;
+      attributes.forEach(attr => {
+        total += getAcademyValue(profileId, attr);
+      });
+      return total;
+    } else {
+      if (!rankingValues[profileId] || !rankingValues[profileId][selectedCoach]) return 0;
+      return Object.values(rankingValues[profileId][selectedCoach]).reduce((sum, val) => sum + (val || 0), 0);
+    }
+  };
+
+  // Order profiles.
   const profileIds = Object.keys(profiles);
   const sortedIds = sortByTotal
     ? [...profileIds].sort((a, b) => getTotalRating(b) - getTotalRating(a))
     : profileIds;
 
-  // Total columns in the main data row (Player Name + attribute columns + Total Rating).
+  // Total columns in main row: Player Name + attribute columns + Total Rating.
   const totalColumns = 1 + attributes.length + 1;
 
   return (
     <div className="container" style={{ padding: '16px' }}>
-      {/* Frozen Header Component with column headings */}
+      {/* Frozen Header Component */}
       <Header
         sortByTotal={sortByTotal}
         toggleSort={() => setSortByTotal(!sortByTotal)}
         attributeHeadings={attributeHeadings}
       />
+
+      {/* Coach Dropdown */}
+      <div style={{ margin: '16px 0' }}>
+        <label style={{ marginRight: '8px' }}>Select Coach:</label>
+        <select value={selectedCoach} onChange={(e) => setSelectedCoach(e.target.value)}>
+          <option value="academy">Academy (Average)</option>
+          {coaches.map(coach => (
+            <option key={coach.id} value={coach.id}>{coach.name}</option>
+          ))}
+        </select>
+      </div>
 
       {/* New Player Form */}
       <div style={{ margin: '16px 0' }}>
@@ -259,7 +332,7 @@ function ProfileRankingPage() {
                       )}
                     </td>
                     {attributes.map(attr => {
-                      const value = rankingValues[id] ? rankingValues[id][attr] : 0;
+                      const value = getDisplayedValue(id, attr);
                       return (
                         <td key={attr}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -272,9 +345,9 @@ function ProfileRankingPage() {
                               min={0}
                               max={100}
                               sx={{ height: 150 }}
+                              disabled={selectedCoach === "academy"}
                             />
                             <div>{value}</div>
-                            {/* Add the attribute heading at the slider bottom */}
                             <div style={{ fontSize: '0.75rem', color: '#666' }}>
                               {attributeHeadings[attr]}
                             </div>
@@ -293,6 +366,7 @@ function ProfileRankingPage() {
                         placeholder="Enter your comments..."
                         value={comments[id] || ""}
                         onChange={(e) => handleCommentChange(id, e.target.value)}
+                        disabled={selectedCoach === "academy"}
                       />
                     </td>
                   </tr>

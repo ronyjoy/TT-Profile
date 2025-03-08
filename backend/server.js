@@ -45,21 +45,26 @@ app.post('/api/playerProfiles', async (req, res) => {
   }
 });
 // Update ranking fields of an existing player profile
-app.put('/api/playerProfiles/:id/rankings', async (req, res) => {
-    console.log("Request Body:", req.body); // prints { ratings: { ... } }
+app.put('/api/playerProfiles/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      console.log("Updating profile with id:", id);
-      const { ratings } = req.body; // using the key "ratings"
-      // Update the document's "rankings" field with the value from "ratings"
+      // Expect payload: { coachRankings: { coachId: { ...ratings } }, comments: "..." }
+      const { coachRankings, comments } = req.body;
       const updatedProfile = await PlayerProfile.findByIdAndUpdate(
         id,
-        { $set: { rankings: ratings } },
+        { $set: { coachRankings: coachRankings, comments: comments } },
         { new: true, runValidators: true }
       );
-      console.log("Updated Profile:", updatedProfile);
       if (!updatedProfile) {
-        return res.status(404).json({ error: "Profile not found" });
+        return res.status(404).json({ error: 'Profile not found' });
+      }
+      // Record the ranking history if needed.
+      if (coachRankings) {
+        const historyEntry = new RankingHistory({
+          playerId: id,
+          rankings: coachRankings  // saving coach-specific ratings history
+        });
+        await historyEntry.save();
       }
       res.json(updatedProfile);
     } catch (error) {
@@ -67,6 +72,8 @@ app.put('/api/playerProfiles/:id/rankings', async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   });
+  
+  
   
   
 app.get('/api/playerProfiles', async (req, res) => {
