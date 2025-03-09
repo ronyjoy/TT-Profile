@@ -1,0 +1,110 @@
+.container {
+    padding: 16px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .add-player-form input {
+    padding: 8px;
+    margin-right: 8px;
+  }
+  
+  .add-player-form button {
+    padding: 8px 12px;
+  }
+  
+  .group-definition {
+    margin-bottom: 16px;
+  }
+  
+  .roster-groups-container {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  /* Unassigned roster style */
+  .roster-container {
+    background-color: #f0f0f0;
+    padding: 8px;
+    width: 250px;
+    min-height: 200px;
+  }
+  
+  /* Style for individual player item in roster */
+  .player-item {
+    padding: 8px;
+    margin: 4px 0;
+    border: 1px solid #ccc;
+    background-color: #fff;
+  }
+  
+  /* Group container style */
+  .group-container {
+    background-color: #e0f7fa;
+    padding: 8px;
+    width: 250px;
+    min-height: 200px;
+  }
+  
+  /* Table for each group */
+  .group-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  
+  .group-table th,
+  .group-table td {
+    border: 1px solid #ccc;
+    padding: 4px;
+    text-align: left;
+  }
+  
+  /* Print-specific styles */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .print-button-container,
+    .print-button-container * {
+      display: none;
+    }
+    .group-container {
+      page-break-after: always;
+      /* Ensure group containers take full page width if desired */
+      width: 100%;
+    }
+    .container, .group-container, .group-table {
+      visibility: visible;
+    }
+  }
+
+  /* This CSS is for print formatting. Each group will start on a new printed page. */
+@media print {
+    .group-print-table {
+      page-break-after: always;
+    }
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+  
+  .black-cell {
+    background-color: black;
+  }
+  
+  /* Ensure each group prints on a separate page */
+  @media print {
+    .group-print-table {
+      page-break-after: always;
+    }
+  }
+  
