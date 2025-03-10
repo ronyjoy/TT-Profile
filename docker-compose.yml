@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    ports:
+      - "5002:5001"
+    environment:
+      - MONGO_USER=joyrony
+      - MONGO_PASSWORD=ZrSnb72RAw8VvCv5
+      - MONGO_CLUSTER=cluster0.3ptt4.mongodb.net
+      - MONGO_DB=tableTennisAcademy
+      - MONGO_OPTIONS=?retryWrites=true&w=majority&appName=Cluster0
+    restart: always

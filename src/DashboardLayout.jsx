@@ -1,15 +1,36 @@
-import React, { useState } from "react";
-import { AppBar, Box, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography, Container } from "@mui/material";
-import { Menu as MenuIcon, Home as HomeIcon, TableChart as TableChartIcon, Person as PersonIcon } from "@mui/icons-material";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { AppBar, Box, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography, Container, Button } from "@mui/material";
+import { Menu as MenuIcon, Home as HomeIcon, TableChart as TableChartIcon, Person as PersonIcon, ExitToApp as ExitToAppIcon } from "@mui/icons-material";
+import { Link, useNavigate } from "react-router-dom";
 
 const drawerWidth = 240;
 
 const DashboardLayout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Retrieve user email from token
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1])); // Decode JWT
+        setUserEmail(decodedToken.email || "Unknown User");
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
+    }
+  }, []);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/"); // Redirect to login page
+    window.location.reload();
   };
 
   const menuItems = [
@@ -30,6 +51,14 @@ const DashboardLayout = ({ children }) => {
           </ListItem>
         ))}
       </List>
+      <Divider />
+      {/* Logout Button */}
+      <List>
+        <ListItem button onClick={handleLogout}>
+          <ListItemIcon><ExitToAppIcon /></ListItemIcon>
+          <ListItemText primary="Logout" />
+        </ListItem>
+      </List>
     </div>
   );
 
@@ -42,9 +71,19 @@ const DashboardLayout = ({ children }) => {
           <IconButton edge="start" color="inherit" aria-label="menu" onClick={handleDrawerToggle} sx={{ mr: 2, display: { sm: "none" } }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Lonestar Table Tennis Academy
           </Typography>
+          {/* Show User Email */}
+          {userEmail && (
+            <Typography variant="body1" sx={{ mr: 2 }}>
+              {userEmail}
+            </Typography>
+          )}
+          {/* Logout Button */}
+          <Button color="inherit" onClick={handleLogout} startIcon={<ExitToAppIcon />}>
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
 

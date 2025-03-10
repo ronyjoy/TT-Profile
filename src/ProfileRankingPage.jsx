@@ -6,6 +6,14 @@ import './App.css';
 
 const serverAddress = 'http://localhost:5001';
 
+const token = localStorage.getItem("token");
+
+fetch("http://localhost:5001/api/playerProfiles", {
+  method: "GET",
+  headers: { Authorization: `Bearer ${token}` },
+});
+
+
 // Define the attribute keys (must match your DB schema for ratings)
 const attributes = [
   "Footwork", 
