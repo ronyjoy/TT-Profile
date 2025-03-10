@@ -48,30 +48,42 @@ app.post('/api/playerProfiles', async (req, res) => {
 app.put('/api/playerProfiles/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      // Expect payload: { coachRankings: { coachId: { ...ratings } }, comments: "..." }
-      const { coachRankings, comments } = req.body;
-      const updatedProfile = await PlayerProfile.findByIdAndUpdate(
-        id,
-        { $set: { coachRankings: coachRankings, comments: comments } },
-        { new: true, runValidators: true }
-      );
-      if (!updatedProfile) {
-        return res.status(404).json({ error: 'Profile not found' });
+      const { coachName, rankings, comments } = req.body;
+  
+      const player = await PlayerProfile.findById(id);
+      if (!player) {
+        return res.status(404).json({ error: "Profile not found" });
       }
-      // Record the ranking history if needed.
-      if (coachRankings) {
+  
+      // ✅ Store rankings under the respective coach
+      if (coachName) {
+        player.coachRankings.set(coachName, rankings);
+      }
+  
+      // ✅ Update comments if provided
+      if (comments) {
+        player.comments = comments;
+      }
+  
+      await player.save();
+  
+      // ✅ Save Ranking History for the Specific Coach
+      if (coachName && rankings) {
         const historyEntry = new RankingHistory({
           playerId: id,
-          rankings: coachRankings  // saving coach-specific ratings history
+          coachRankings: { [coachName]: rankings }, // ✅ Only save the updated coach's rankings
+          createdAt: new Date()
         });
         await historyEntry.save();
       }
-      res.json(updatedProfile);
+  
+      res.json(player);
     } catch (error) {
       console.error("Error updating profile:", error);
       res.status(400).json({ error: error.message });
     }
   });
+  
   
   
   
@@ -90,40 +102,44 @@ try {
 
 
 app.put('/api/playerProfiles/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { rankings, comments } = req.body;
-    const updatedProfile = await PlayerProfile.findByIdAndUpdate(
-      id,
-      { $set: { rankings: rankings, comments: comments } },
-      { new: true, runValidators: true }
-    );
-    if (!updatedProfile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    try {
+      const { id } = req.params;
+      const { coachName, rankings } = req.body;
+  
+      const player = await PlayerProfile.findById(id);
+      if (!player) return res.status(404).json({ error: "Profile not found" });
+  
+      // ✅ Update only the selected coach's rankings
+      if (coachName) {
+        player.coachRankings.set(coachName, rankings);
+      }
+  
+      await player.save();
+  
+      res.json(player);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(400).json({ error: error.message });
     }
-
-    // Record the ranking history (only for rankings)
-    if (rankings) {
-      const historyEntry = new RankingHistory({
-        playerId: id,
-        rankings: rankings
-      });
-      await historyEntry.save();
-    }
-
-    res.json(updatedProfile);
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(400).json({ error: error.message });
-  }
-});
+  });
+  
 
 app.get('/api/playerProfiles/:id/rankingHistory', async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // ✅ Find the ranking history for the specific player
       const history = await RankingHistory.find({ playerId: id }).sort({ createdAt: 1 });
-      res.json(history);
+  
+      // ✅ Transform data to separate each coach’s ranking history
+      const transformedHistory = history.map(entry => ({
+        createdAt: entry.createdAt,
+        coachRankings: entry.coachRankings // ✅ Ensure each coach’s history is preserved
+      }));
+  
+      res.json(transformedHistory);
     } catch (error) {
+      console.error("Error fetching ranking history:", error);
       res.status(400).json({ error: error.message });
     }
   });

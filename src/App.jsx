@@ -14,7 +14,7 @@ const App = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/league-roster" element={<LeagueRosterPage />} />
           <Route path="/player-ratings" element={<PlayerRatingsPage />} />
-          <Route path="/rating-history" element={PlayerRankingHistoryGraph}/>
+          <Route path="/rating-history/:playerId" element={<PlayerRankingHistoryGraph />} /> {/* ✅ Added Route */}
         </Routes>
       </DashboardLayout>
     </Router>

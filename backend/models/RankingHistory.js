@@ -1,10 +1,9 @@
-// models/RankingHistory.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const rankingHistorySchema = new Schema({
-  playerId: { type: Schema.Types.ObjectId, ref: 'PlayerProfile', required: true },
-  rankings: {
+// Define Ranking Schema for Individual Coach Entries
+const rankingSchema = new Schema(
+  {
     Footwork: { type: Number, default: 0 },
     ForehandDrive: { type: Number, default: 0 },
     BackhandDrive: { type: Number, default: 0 },
@@ -26,9 +25,26 @@ const rankingHistorySchema = new Schema({
     Gameplay: { type: Number, default: 0 },
     PracticeFocus: { type: Number, default: 0 },
     Sportsmanship: { type: Number, default: 0 },
-    OverallAttitude: { type: Number, default: 0 }
+    OverallAttitude: { type: Number, default: 0 },
   },
-  createdAt: { type: Date, default: Date.now }
+  { _id: false }
+);
+
+// Define Ranking History Schema
+const rankingHistorySchema = new Schema({
+  playerId: { type: Schema.Types.ObjectId, ref: "PlayerProfile", required: true },
+
+  // ✅ Stores rankings per coach
+  coachRankings: {
+    type: Map,
+    of: rankingSchema, // ✅ Each coach has their own rating history entry
+    default: {},
+  },
+
+  // ✅ Stores academy-wide average at that time
+  averageRatings: { type: rankingSchema, default: {} },
+
+  createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('RankingHistory', rankingHistorySchema);
+module.exports = mongoose.model("RankingHistory", rankingHistorySchema);

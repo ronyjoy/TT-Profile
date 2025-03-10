@@ -107,8 +107,9 @@ function ProfileRankingPage() {
   // Simulate fetching coach list.
   useEffect(() => {
     setCoaches([
-      { id: "coach1", name: "Coach One" },
-      { id: "coach2", name: "Coach Two" }
+      { id: "Bright", name: "Bright" },
+      { id: "Maba", name: "Maba" },
+      { id: "Eday", name: "Eday" }
     ]);
   }, []);
 
@@ -161,58 +162,71 @@ function ProfileRankingPage() {
 
   // Updated PUT endpoint call to update the coach-specific data.
   const updateProfileForStudent = async (profileId) => {
-    if (selectedCoach === "academy") return; // In academy view, do not update
-    // Get the current coach's data.
+    if (selectedCoach === "academy") return; // Read-only in academy view
+  
     const coachData = rankingValuesRef.current[profileId]?.[selectedCoach] || {};
     const payload = {
-      coachRankings: {
-        ...(rankingValuesRef.current[profileId] || {}),
-        [selectedCoach]: coachData
-      },
-      comments: commentsRef.current[profileId]
+      coachName: selectedCoach,
+      rankings: coachData, // ✅ Only send the selected coach's rankings
+      comments: commentsRef.current[profileId] || "",
     };
-    console.log("Payload to update for profile", profileId, ":", payload);
+  
+    console.log("Updating profile:", profileId, "Payload:", payload);
+  
     try {
       const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+  
       const updatedProfile = await response.json();
       console.log("Profile updated:", updatedProfile);
-      setProfiles(prev => ({ ...prev, [profileId]: updatedProfile }));
-      setRankingValues(prev => ({
+  
+      setProfiles((prev) => ({
         ...prev,
-        [profileId]: updatedProfile.coachRankings || {}
+        [profileId]: updatedProfile,
+      }));
+  
+      setRankingValues((prev) => ({
+        ...prev,
+        [profileId]: updatedProfile.coachRankings || {},
       }));
     } catch (error) {
       console.error("Error updating profile:", error);
     }
   };
+  
 
   // Handle slider changes.
   const handleSliderChange = (profileId, attr, newValue) => {
-    if (selectedCoach === "academy") return; // Read-only in academy view
-    // Update the nested object for the selected coach.
-    setRankingValues(prev => ({
-      ...prev,
-      [profileId]: {
-        ...prev[profileId],
-        [selectedCoach]: {
-          ...(prev[profileId][selectedCoach] || {}),
-          [attr]: newValue
-        }
-      }
-    }));
-    // Debounce update.
+    if (selectedCoach === "academy") return; // Prevent updates in academy mode
+  
+    setRankingValues((prev) => {
+      const updatedRankings = {
+        ...prev,
+        [profileId]: {
+          ...(prev[profileId] || {}),
+          [selectedCoach]: {
+            ...(prev[profileId]?.[selectedCoach] || {}),
+            [attr]: newValue,
+          },
+        },
+      };
+  
+      rankingValuesRef.current = updatedRankings; // ✅ Update reference
+      return updatedRankings;
+    });
+  
     if (autoUpdateTimers.current[profileId]) {
       clearTimeout(autoUpdateTimers.current[profileId]);
     }
+    
     autoUpdateTimers.current[profileId] = setTimeout(() => {
       updateProfileForStudent(profileId);
     }, 500);
   };
-
+  
   // Handle comment changes.
   const handleCommentChange = (profileId, value) => {
     if (selectedCoach === "academy") return; // Read-only in academy view
@@ -228,47 +242,44 @@ function ProfileRankingPage() {
     }, 500);
   };
 
-  // For academy view, compute the average for an attribute.
+
+
+  const getDisplayedValue = (profileId, attr) => {
+    if (selectedCoach === "academy") {
+      return getAcademyValue(profileId, attr); // ✅ Compute average
+    } else {
+      return rankingValues[profileId]?.[selectedCoach]?.[attr] ?? 0;
+    }
+  };
+  
+  // ✅ Function to compute the average for the academy view
   const getAcademyValue = (profileId, attr) => {
     const coachData = rankingValues[profileId] || {};
     let sum = 0, count = 0;
-    Object.values(coachData).forEach(coachRanking => {
+  
+    Object.values(coachData).forEach((coachRanking) => {
       const val = coachRanking[attr] || 0;
       if (val > 0) {
         sum += val;
         count++;
       }
     });
+  
     return count > 0 ? Math.round(sum / count) : 0;
   };
-
-  // Get displayed slider value.
-  const getDisplayedValue = (profileId, attr) => {
-    if (selectedCoach === "academy") {
-      return getAcademyValue(profileId, attr);
-    } else {
-      return rankingValues[profileId] &&
-        rankingValues[profileId][selectedCoach] &&
-        rankingValues[profileId][selectedCoach][attr] !== undefined
-        ? rankingValues[profileId][selectedCoach][attr]
-        : 0;
-    }
-  };
+  
+  
 
   // Compute total rating for a player.
   const getTotalRating = (profileId) => {
     if (selectedCoach === "academy") {
-      let total = 0;
-      attributes.forEach(attr => {
-        total += getAcademyValue(profileId, attr);
-      });
-      return total;
+      return attributes.reduce((sum, attr) => sum + getAcademyValue(profileId, attr), 0);
     } else {
       if (!rankingValues[profileId] || !rankingValues[profileId][selectedCoach]) return 0;
       return Object.values(rankingValues[profileId][selectedCoach]).reduce((sum, val) => sum + (val || 0), 0);
     }
   };
-
+  
   // Order profiles.
   const profileIds = Object.keys(profiles);
   const sortedIds = sortByTotal
@@ -336,17 +347,18 @@ function ProfileRankingPage() {
                       return (
                         <td key={attr}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <Slider
-                              orientation="vertical"
-                              value={value}
-                              onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
-                              valueLabelDisplay="auto"
-                              aria-label={attr}
-                              min={0}
-                              max={100}
-                              sx={{ height: 150 }}
-                              disabled={selectedCoach === "academy"}
-                            />
+                          <Slider
+                            orientation="vertical"
+                            value={getDisplayedValue(id, attr)} // ✅ Read from updated state
+                            onChange={(e, newValue) => handleSliderChange(id, attr, newValue)}
+                            valueLabelDisplay="auto"
+                            aria-label={attr}
+                            min={0}
+                            max={100}
+                            sx={{ height: 150 }}
+                            disabled={selectedCoach === "academy"} // Prevent moving in academy view
+/>
+
                             <div>{value}</div>
                             <div style={{ fontSize: '0.75rem', color: '#666' }}>
                               {attributeHeadings[attr]}

@@ -24,7 +24,7 @@ const DashboardLayout = ({ children }) => {
       <Divider />
       <List>
         {menuItems.map((item) => (
-          <ListItem button key={item.text} component={Link} to={item.path} onClick={handleDrawerToggle}>
+          <ListItem key={item.text} component={Link} to={item.path} onClick={handleDrawerToggle} sx={{ textDecoration: "none", color: "inherit" }}>
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
           </ListItem>
