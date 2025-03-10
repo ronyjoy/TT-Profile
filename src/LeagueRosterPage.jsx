@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Box, Button, TextField, Typography, Paper, MenuItem, Select } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, MenuItem, Select, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 import {
   DndContext,
   closestCenter,
@@ -14,9 +14,11 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import GroupPrintTable from "./GroupPrintTable";
 
+const ACADEMY_LOGO_URL = "images/logo.png"; // Update this with the actual image path
+
 const LeagueRosterPage = () => {
-  const [roster, setRoster] = useState([]);
-  const [numGroups, setNumGroups] = useState(2); // Default groups: 2
+  const [roster, setRoster] = useState([]); // Unassigned players
+  const [numGroups, setNumGroups] = useState(2);
   const [groups, setGroups] = useState(generateGroups(2));
   const [newPlayerName, setNewPlayerName] = useState("");
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ const LeagueRosterPage = () => {
   const addPlayer = () => {
     if (newPlayerName.trim() === "") return;
     const newPlayer = { id: `p${Date.now()}`, name: newPlayerName };
-    setRoster((prev) => [...prev, newPlayer]);
+    setRoster((prev) => [...prev, newPlayer]); // ✅ Player now appears in the Unassigned Players list
     setNewPlayerName("");
   };
 
@@ -107,11 +109,6 @@ const LeagueRosterPage = () => {
     }
   };
 
-  // Navigate to Print Page
-  const goToPrintPage = () => {
-    navigate("/league-roster/print", { state: { groups } });
-  };
-
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4">League Roster</Typography>
@@ -154,7 +151,7 @@ const LeagueRosterPage = () => {
         <Box sx={{ display: "flex", gap: 3, mt: 3 }}>
           {Object.keys(groups).map((groupId) => (
             <SortableContext key={groupId} items={groups[groupId]} strategy={rectSortingStrategy}>
-              <DroppableArea id={groupId} title={groupId}>
+              <DroppableArea id={groupId} title={<GroupTitle name={groupId} />}>
                 {groups[groupId].map((player) => (
                   <DraggableItem key={player.id} id={player.id} name={player.name} />
                 ))}
@@ -165,17 +162,20 @@ const LeagueRosterPage = () => {
         </Box>
       </DndContext>
 
-      {/* Print Full Roster Button */}
-      <Button variant="contained" sx={{ mt: 3 }} onClick={goToPrintPage}>
-        Print League Roster
-      </Button>
-
       <Box sx={{ mt: 3 }}>
         <Link to="/">Back to Home</Link>
       </Box>
     </Box>
   );
 };
+
+// Group Title with Logo Component
+const GroupTitle = ({ name }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    <img src={ACADEMY_LOGO_URL} alt="Academy Logo" style={{ width: 40, height: 40 }} />
+    <Typography>{name}</Typography>
+  </Box>
+);
 
 // Draggable Item Component
 const DraggableItem = ({ id, name }) => {

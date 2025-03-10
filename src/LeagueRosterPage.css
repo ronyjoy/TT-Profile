@@ -101,10 +101,3 @@
     background-color: black;
   }
   
-  /* Ensure each group prints on a separate page */
-  @media print {
-    .group-print-table {
-      page-break-after: always;
-    }
-  }
-  

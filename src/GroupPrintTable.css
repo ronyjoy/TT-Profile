@@ -1,0 +1,31 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+  
+  th:first-child, td:first-child {
+    max-width: 200px; /* ✅ Initial max width */
+    white-space: nowrap; /* ✅ Prevent wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .black-cell {
+    background-color: black;
+    width: 50px;
+    height: 50px;
+  }
+  
+  @media print {
+    .black-cell {
+      background-color: black !important;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+  

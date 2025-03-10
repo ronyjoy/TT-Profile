@@ -1,5 +1,5 @@
 import React from 'react';
-import './Header.css';
+import './PlayerRatingHeader.css';
 
 const Header = ({ sortByTotal, toggleSort, attributeHeadings }) => {
   return (

@@ -1,18 +1,13 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Typography, Box } from "@mui/material";
 
-const HomePage = () => (
-  <div style={{ padding: "16px" }}>
-    <h1>Welcome to the League Management System</h1>
-    <ul>
-      <li>
-        <Link to="/league-roster">League Roster</Link>
-      </li>
-      <li>
-        <Link to="/student-ratings">Student Ratings</Link>
-      </li>
-    </ul>
-  </div>
-);
+const HomePage = () => {
+  return (
+    <Box>
+      <Typography variant="h4">Welcome to Lonestar Table Tennis Academy</Typography>
+      <Typography variant="body1">Select an option from the menu to continue.</Typography>
+    </Box>
+  );
+};
 
 export default HomePage;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
-import Header from './Header';
+import Header from './PlayerRatingHeader';
 import './App.css';
 
 const serverAddress = 'http://localhost:5001';
