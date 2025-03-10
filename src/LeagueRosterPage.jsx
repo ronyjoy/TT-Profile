@@ -109,6 +109,7 @@ const LeagueRosterPage = () => {
     }
   };
 
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4">League Roster</Typography>
@@ -172,7 +173,6 @@ const LeagueRosterPage = () => {
 // Group Title with Logo Component
 const GroupTitle = ({ name }) => (
   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-    <img src={ACADEMY_LOGO_URL} alt="Academy Logo" style={{ width: 40, height: 40 }} />
     <Typography>{name}</Typography>
   </Box>
 );
@@ -202,7 +202,16 @@ const DraggableItem = ({ id, name }) => {
 const DroppableArea = ({ id, title, children }) => {
   const { setNodeRef } = useDroppable({ id });
   return (
-    <Box ref={setNodeRef} sx={{ width: 300, minHeight: 200, border: "1px solid black", p: 2 }}>
+    <Box
+      ref={setNodeRef}
+      sx={{
+        width: 300,
+        minHeight: 200,
+        border: "2px dotted black", // Changed to dotted border
+        p: 2,
+        borderRadius: "4px", // Optional: Slight rounding of corners
+      }}
+    >
       <Typography variant="h6">{title}</Typography>
       {children}
     </Box>
