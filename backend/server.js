@@ -18,22 +18,7 @@ app.use(session({ secret: "your-secret-key", resave: false, saveUninitialized: t
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors());
-// ✅ Serve React frontend properly
-// app.use(express.static(path.join(__dirname, "public")));
-
-// // For any other request, send back index.html so that React Router works
-// app.get("*", (req, res) => {
-//   res.sendFile(path.join(__dirname, "public", "index.html"));
-// });
-
-// // ✅ Explicitly handle `manifest.json` and `favicon.ico`
-// app.get("/manifest.json", (req, res) => {
-//   res.sendFile(path.join(publicPath, "manifest.json"));
-// });
-
-// app.get("/favicon.ico", (req, res) => {
-//   res.sendFile(path.join(publicPath, "favicon.ico"));
-// });
+const REACT_APP_FRONT_END_URL = process.env.REACT_APP_FRONT_END_URL || "http://localhost:5001";
 
 
 // Enable CORS for all origins (or specify allowed origin)
@@ -82,12 +67,14 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     // Generate JWT token
-    const token = jwt.sign({ id: req.user._id, email: req.user.email }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    // Redirect user with token (or send response)
-    res.redirect(`http://localhost:3000?token=${token}`);
+    const token = jwt.sign(
+      { id: req.user._id, email: req.user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    
+    // Use a relative path for redirection
+    res.redirect(`${REACT_APP_FRONT_END_URL}/?token=${token}`);
   }
 );
 
@@ -127,6 +114,7 @@ const verifyToken = (req, res, next) => {
   };
 
 
+
 // app.use(express.static(path.join(__dirname, "../frontend/build")));
 
 // app.get("*", (req, res) => {
@@ -163,7 +151,7 @@ app.post('/api/playerProfiles', async (req, res) => {
   }
 });
 // Update ranking fields of an existing player profile
-app.put('/api/playerProfiles/:id', async (req, res) => {
+app.put('/api/playerProfiles/:id',verifyToken, async (req, res) => {
     try {
       const { id } = req.params;
       const { coachName, rankings, comments } = req.body;
@@ -206,7 +194,7 @@ app.put('/api/playerProfiles/:id', async (req, res) => {
   
   
   
-app.get('/api/playerProfiles', verifyToken, async (req, res) => {
+app.get('/api/playerProfiles',verifyToken, async (req, res) => {
 try {
     const profiles = await PlayerProfile.find();
     res.json(profiles);
@@ -219,7 +207,7 @@ try {
 
 
 
-app.put('/api/playerProfiles/:id', verifyToken, async (req, res) => {
+app.put('/api/playerProfiles/:id',verifyToken, async (req, res) => {
     try {
       const { id } = req.params;
       const { coachName, rankings } = req.body;
@@ -242,7 +230,7 @@ app.put('/api/playerProfiles/:id', verifyToken, async (req, res) => {
   });
   
 
-app.get('/api/playerProfiles/:id/rankingHistory', async (req, res) => {
+app.get('/api/playerProfiles/:id/rankingHistory', verifyToken,async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -262,6 +250,22 @@ app.get('/api/playerProfiles/:id/rankingHistory', async (req, res) => {
     }
   });
   
+
+  // Only serve static assets if in production mode
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "public")));
+
+  // Fallback to index.html for React SPA
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  });
+} else {
+  // For development, you might want to just log the route or set up a dummy handler.
+  app.get("/", (req, res) => {
+    res.send("Development mode: Frontend not served by Express.");
+  });
+}
+
 
   
   

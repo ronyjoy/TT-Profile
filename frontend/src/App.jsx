@@ -6,21 +6,24 @@ import PlayerRatingsPage from "./ProfileRankingPage";
 import HomePage from "./HomePage";
 import PlayerRankingHistoryGraph from "./PlayerRankingHistoryGraph";
 import GoogleLoginButton from "./GoogleLoginButton"; // Import the login button
+const token = localStorage.getItem("token");
+
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
-    // Extract token from URL if available
-    const urlParams = new URLSearchParams(window.location.search);
-    const authToken = urlParams.get("token");
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      // Save the token, e.g., in localStorage or context
+      localStorage.setItem("token", token);
 
-    if (authToken) {
-      localStorage.setItem("token", authToken);
-      setToken(authToken);
-      window.history.replaceState({}, document.title, "/"); // Clean URL
+      // Optionally, remove token from URL to clean it up
+      window.history.replaceState({}, document.title, "/");
     }
   }, []);
+
 
   return (
     <Router>
