@@ -85,7 +85,7 @@ function ProfileRankingPage() {
     const fetchProfiles = async () => {
       try {
         const response = await api.get(`/api/playerProfiles`);
-        const data = await response.json();
+        const data = response.data;
         const profilesObj = {};
         const initialRankings = {};
         const initialComments = {};
@@ -138,7 +138,7 @@ function ProfileRankingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProfile)
       });
-      const savedProfile = await response.json();
+      const savedProfile = response.data;
       const id = savedProfile._id || savedProfile.id;
       setProfiles(prev => ({ ...prev, [id]: savedProfile }));
       // Initialize with an empty object for coach-specific data.
@@ -182,7 +182,7 @@ function ProfileRankingPage() {
         body: JSON.stringify(payload),
       });
   
-      const updatedProfile = await response.json();
+      const updatedProfile = response.data;
       console.log("Profile updated:", updatedProfile);
   
       setProfiles((prev) => ({
