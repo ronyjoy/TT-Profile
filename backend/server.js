@@ -19,21 +19,21 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors());
 // ✅ Serve React frontend properly
-app.use(express.static(path.join(__dirname, "public")));
+// app.use(express.static(path.join(__dirname, "public")));
 
-// For any other request, send back index.html so that React Router works
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+// // For any other request, send back index.html so that React Router works
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public", "index.html"));
+// });
 
-// ✅ Explicitly handle `manifest.json` and `favicon.ico`
-app.get("/manifest.json", (req, res) => {
-  res.sendFile(path.join(publicPath, "manifest.json"));
-});
+// // ✅ Explicitly handle `manifest.json` and `favicon.ico`
+// app.get("/manifest.json", (req, res) => {
+//   res.sendFile(path.join(publicPath, "manifest.json"));
+// });
 
-app.get("/favicon.ico", (req, res) => {
-  res.sendFile(path.join(publicPath, "favicon.ico"));
-});
+// app.get("/favicon.ico", (req, res) => {
+//   res.sendFile(path.join(publicPath, "favicon.ico"));
+// });
 
 
 // Enable CORS for all origins (or specify allowed origin)
@@ -127,11 +127,11 @@ const verifyToken = (req, res, next) => {
   };
 
 
-app.use(express.static(path.join(__dirname, "../frontend/build")));
+// app.use(express.static(path.join(__dirname, "../frontend/build")));
 
-app.get("*", (req, res) => {
-res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
-});
+// app.get("*", (req, res) => {
+// res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+// });
 
 
 app.use(express.json({ limit: '50mb' }));

@@ -1,42 +1,46 @@
-# Stage 1: Build the frontend (React app)
+# Stage 1: Build the Frontend (React)
 FROM node:18 as build-stage
 
-# Set the working directory
+# Set working directory at the root of the project
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy the root package.json and package-lock.json
+# (This is for installing shared dependencies if you have a monorepo; if not, adjust accordingly.)
 COPY package.json package-lock.json ./
 
-# Install all dependencies (both backend and frontend)
+# Install dependencies at the root (if needed)
 RUN npm install
 
 # Copy the entire project
 COPY . .
 
-# Build the React app; this creates the "build" folder
+# Build the React app
+# This assumes that your React app is set up with Create React App
+# and that running "npm run build" from the root builds the app
 RUN npm run build
 
-# Stage 2: Production - setup the backend
+# Stage 2: Setup the Production Container (Backend + Frontend)
 FROM node:18
 
-# Set the working directory in the production container
+# Set working directory in production container
 WORKDIR /app
 
-# Copy backend files from the previous stage
+# Copy the backend folder from the build stage (including its package.json and files)
 COPY --from=build-stage /app/backend ./backend
 
-# Copy the built React app into backend's public folder so Express can serve it.
+# Copy the built React app from the build stage into the backend's public folder.
+# This assumes that the build folder was created at /app/build in stage 1.
 RUN mkdir -p ./backend/public
 COPY --from=build-stage /app/build ./backend/public
 
-# Copy package.json (for backend dependencies)
-COPY --from=build-stage /app/package.json ./
+# Change working directory to backend folder
+WORKDIR /app/backend
 
-# Install only production dependencies for the backend
-RUN cd backend && npm install --production
+# Install production dependencies from the backend's package.json
+RUN npm install --production
 
-# Expose the backend port
+# Expose the backend port (Express server)
 EXPOSE 5001
 
-# Start the backend server
-CMD ["node", "backend/server.js"]
+# Start the backend server (make sure server.js is your entry point)
+CMD ["node", "server.js"]

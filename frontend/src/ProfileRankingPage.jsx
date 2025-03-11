@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
 import Header from './PlayerRatingHeader';
 import './App.css';
+const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-const serverAddress = 'http://localhost:5001';
 
 const token = localStorage.getItem("token");
 
-fetch("http://localhost:5001/api/playerProfiles", {
+fetch("/api/playerProfiles", {
   method: "GET",
   headers: { Authorization: `Bearer ${token}` },
 });
@@ -90,7 +90,7 @@ function ProfileRankingPage() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const response = await fetch(`${serverAddress}/api/playerProfiles`);
+        const response = await fetch(`/api/playerProfiles`);
         const data = await response.json();
         const profilesObj = {};
         const initialRankings = {};
@@ -139,7 +139,7 @@ function ProfileRankingPage() {
       picture: newPicturePreview
     };
     try {
-      const response = await fetch(`${serverAddress}/api/playerProfiles`, {
+      const response = await fetch(`/api/playerProfiles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProfile)
@@ -182,7 +182,7 @@ function ProfileRankingPage() {
     console.log("Updating profile:", profileId, "Payload:", payload);
   
     try {
-      const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
+      const response = await fetch(`/api/playerProfiles/${profileId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
