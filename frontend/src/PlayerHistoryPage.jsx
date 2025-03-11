@@ -15,7 +15,6 @@ import { useParams, Link } from 'react-router-dom';
 // Register Chart.js components.
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-const serverAddress = 'http://localhost:5001';
 
 // Define attribute keys (must match your DB schema for ranking history).
 const attributes = [
@@ -80,7 +79,7 @@ function PlayerHistoryPage() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`${serverAddress}/api/playerProfiles/${id}/rankingHistory`);
+        const response = await fetch(`/api/playerProfiles/${id}/rankingHistory`);
         const data = await response.json();
         setHistoryData(data);
       } catch (error) {
