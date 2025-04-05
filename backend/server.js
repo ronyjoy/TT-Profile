@@ -1,83 +1,114 @@
 // In your server.js or routes file
 const express = require('express');
-const mongoose = require('mongoose');
+
+const fs = require("fs");
 const path = require("path");
-// In your server.js (or routes file)
-const RankingHistory = require('./models/RankingHistory');
-const PlayerProfile = require('./models/PlayerProfile');
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const cors = require('cors');
 const app = express();
 require("dotenv").config();
-const passport = require("passport");
-const session = require("express-session");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const jwt = require("jsonwebtoken");
-const User = require("./models/User"); // We'll create this model
 
-app.use(session({ secret: "your-secret-key", resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
-app.use(passport.session());
+
 app.use(cors());
+
 const REACT_APP_FRONT_END_URL = process.env.REACT_APP_FRONT_END_URL || "http://localhost:5001";
 
 
-// Enable CORS for all origins (or specify allowed origin)
+const ALLOWED_EMAILS = [
+  "ronyjoy@gmail.com",
+  "admin@lonestartabletennis.com",
+  "rj@lonestartabletennis.com",
+  "offybee3@gmail.com",
+  "pada.tanv@gmail.com",
+  "edaythelion@gmail.com",
+  "sathish.sh@gmail.com",
+  "Siva.Subbiah@gmail.com"
+];
 
-const ALLOWED_EMAILS = ["ronyjoy@gmail.com", "admin@lonestartabletennis.com","rj@lonestartabletennis.com","offybee3@gmail.com","pada.tanv@gmail.com","edaythelion@gmail.com","sathish.sh@gmail.com","Siva.Subbiah@gmail.com"];
+// File path for users if you need to persist allowed users (optional)
+const USERS_FILE = path.join(__dirname, "data", "users.json");
+
+
+// Ensure the directory exists
+const dir = path.dirname(USERS_FILE);
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+// Ensure the file exists
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, "[]", "utf-8");
+}
+
+function loadUsers() {
+  if (!fs.existsSync(USERS_FILE)) return [];
+  return JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+}
+
+function saveUser(user) {
+  const users = loadUsers();
+  if (!users.find(u => u.googleId === user.googleId)) {
+    users.push(user);
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  }
+}
+
 passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: "/auth/google/callback",
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const email = profile.emails[0].value;
-  
-          // Allow access only if the email is in the allowed list
-          if (!ALLOWED_EMAILS.includes(email)) {
-            return done(null, false, { message: "Unauthorized" });
-          }
-  
-          let user = await User.findOne({ googleId: profile.id });
-          if (!user) {
-            user = new User({
-              googleId: profile.id,
-              name: profile.displayName,
-              email: email,
-            });
-            await user.save();
-          }
-  
-          return done(null, user);
-        } catch (error) {
-          return done(error, null);
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+
+        if (!ALLOWED_EMAILS.includes(email)) {
+          return done(null, false, { message: "Unauthorized email." });
         }
+
+        const user = {
+          googleId: profile.id,
+          name: profile.displayName,
+          email: email,
+        };
+
+        // Optionally store user in file (not necessary unless you want it)
+        saveUser(user);
+
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
       }
-    )
-  );
+    }
+  )
+);
+
 
   // Redirect to Google OAuth
 app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-// Google OAuth Callback
-app.get(
-  "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  (req, res) => {
-    // Generate JWT token
+const FRONTEND_URL = process.env.REACT_APP_FRONT_END_URL || "http://localhost:3000";
+
+app.get("/auth/google/callback", (req, res, next) => {
+  passport.authenticate("google", { session: false }, (err, user, info) => {
+    if (err || !user) {
+      return res.redirect("/login");
+    }
+
     const token = jwt.sign(
-      { id: req.user._id, email: req.user.email },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    
-    // Use a relative path for redirection
-    res.redirect(`${REACT_APP_FRONT_END_URL}/?token=${token}`);
-  }
-);
 
+    res.redirect(`${process.env.REACT_APP_FRONT_END_URL}/?token=${token}`);
+  })(req, res, next);
+});
 
 // Logout
 app.get("/auth/logout", (req, res) => {
@@ -86,15 +117,6 @@ app.get("/auth/logout", (req, res) => {
   });
 });
 
-  
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
-  });
-  
-  passport.deserializeUser(async (id, done) => {
-    const user = await User.findById(id);
-    done(null, user);
-  });
   
 
 app.use((req, res, next) => {
@@ -114,158 +136,102 @@ const verifyToken = (req, res, next) => {
   };
 
 
-
-// app.use(express.static(path.join(__dirname, "../frontend/build")));
-
-// app.get("*", (req, res) => {
-// res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
-// });
-
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const PORT = process.env.PORT || 5001; // or 5001, as intended
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+const playersPath = path.join(__dirname, "data", "players.json");
+const historyPath = path.join(__dirname, "data", "rankingHistory.json");
 
-// Connect to MongoDB
-const mongoURI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER}/${process.env.MONGO_DB}${process.env.MONGO_OPTIONS}`;
+function loadPlayers() {
+  return JSON.parse(fs.readFileSync(playersPath, "utf-8") || "[]");
+}
 
-mongoose.connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log("✅ MongoDB Connected Successfully"))
-.catch(err => console.error("❌ MongoDB Connection Error:", err));
+function savePlayers(players) {
+  fs.writeFileSync(playersPath, JSON.stringify(players, null, 2));
+}
 
-// Create a new player profile (profile + initial rankings)
-app.post('/api/playerProfiles', async (req, res) => {
-  try {
-    const newProfile = new PlayerProfile(req.body);
-    const savedProfile = await newProfile.save();
-    res.status(201).json(savedProfile);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+function loadHistory() {
+  return JSON.parse(fs.readFileSync(historyPath, "utf-8") || "[]");
+}
+
+function saveHistory(entries) {
+  fs.writeFileSync(historyPath, JSON.stringify(entries, null, 2));
+}
+
+// POST: Create new profile
+app.post("/api/playerProfiles", (req, res) => {
+  const players = loadPlayers();
+  const newProfile = { ...req.body, id: Date.now().toString(), coachRankings: {} };
+  players.push(newProfile);
+  savePlayers(players);
+  res.status(201).json(newProfile);
+});
+
+// PUT: Update profile with rankings and comments
+app.put("/api/playerProfiles/:id", (req, res) => {
+  const { id } = req.params;
+  const { coachName, rankings, comments } = req.body;
+  const players = loadPlayers();
+  const player = players.find(p => p.id === id);
+  if (!player) return res.status(404).json({ error: "Profile not found" });
+
+  if (coachName && rankings) {
+    player.coachRankings[coachName] = rankings;
   }
+  if (comments !== undefined) {
+    player.comments = comments;
+  }
+  savePlayers(players);
+
+  if (coachName && rankings) {
+    const history = loadHistory();
+    const existingEntry = history.find(h => h.playerId === id && h.coachRankings?.[coachName]);
+
+    history.push({
+      playerId: id,
+      coachRankings: { [coachName]: rankings },
+      averageRatings: computeAverageRatings(player.coachRankings),
+      createdAt: new Date()
+    });
+    saveHistory(history);
+  }
+
+  res.json(player);
 });
-// Update ranking fields of an existing player profile
-app.put('/api/playerProfiles/:id',verifyToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { coachName, rankings, comments } = req.body;
-  
-      const player = await PlayerProfile.findById(id);
-      if (!player) {
-        return res.status(404).json({ error: "Profile not found" });
-      }
-  
-      // ✅ Store rankings under the respective coach
-      if (coachName) {
-        player.coachRankings.set(coachName, rankings);
-      }
-  
-      // ✅ Update comments if provided
-      if (comments) {
-        player.comments = comments;
-      }
-  
-      await player.save();
-  
-      // ✅ Save Ranking History for the Specific Coach
-      if (coachName && rankings) {
-        const historyEntry = new RankingHistory({
-          playerId: id,
-          coachRankings: { [coachName]: rankings }, // ✅ Only save the updated coach's rankings
-          createdAt: new Date()
-        });
-        await historyEntry.save();
-      }
-  
-      res.json(player);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-  
-  
-  
-  
-  
-app.get('/api/playerProfiles',verifyToken, async (req, res) => {
-try {
-    const profiles = await PlayerProfile.find();
-    res.json(profiles);
-} catch (error) {
-    res.status(400).json({ error: error.message });
-}
+
+// GET: All profiles
+app.get("/api/playerProfiles", (req, res) => {
+  const players = loadPlayers();
+  res.json(players);
 });
-  
 
+// GET: Ranking history
+app.get("/api/playerProfiles/:id/rankingHistory", (req, res) => {
+  const { id } = req.params;
+  const history = loadHistory();
+  const filtered = history.filter(h => h.playerId === id);
+  res.json(filtered);
+});
 
-
-
-app.put('/api/playerProfiles/:id',verifyToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { coachName, rankings } = req.body;
-  
-      const player = await PlayerProfile.findById(id);
-      if (!player) return res.status(404).json({ error: "Profile not found" });
-  
-      // ✅ Update only the selected coach's rankings
-      if (coachName) {
-        player.coachRankings.set(coachName, rankings);
+// Helper to compute average ratings
+function computeAverageRatings(coachRankings) {
+  const allAttrs = Object.keys(Object.values(coachRankings)[0] || {});
+  const result = {};
+  allAttrs.forEach(attr => {
+    let sum = 0, count = 0;
+    for (const coach in coachRankings) {
+      const val = coachRankings[coach][attr];
+      if (val > 0) {
+        sum += val;
+        count++;
       }
-  
-      await player.save();
-  
-      res.json(player);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(400).json({ error: error.message });
     }
+    result[attr] = count > 0 ? Math.round(sum / count) : 0;
   });
-  
-
-app.get('/api/playerProfiles/:id/rankingHistory', verifyToken,async (req, res) => {
-    try {
-      const { id } = req.params;
-      
-      // ✅ Find the ranking history for the specific player
-      const history = await RankingHistory.find({ playerId: id }).sort({ createdAt: 1 });
-  
-      // ✅ Transform data to separate each coach’s ranking history
-      const transformedHistory = history.map(entry => ({
-        createdAt: entry.createdAt,
-        coachRankings: entry.coachRankings // ✅ Ensure each coach’s history is preserved
-      }));
-  
-      res.json(transformedHistory);
-    } catch (error) {
-      console.error("Error fetching ranking history:", error);
-      res.status(400).json({ error: error.message });
-    }
-  });
-  
-
-  // Only serve static assets if in production mode
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "public")));
-
-  // Fallback to index.html for React SPA
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
-  });
-} else {
-  // For development, you might want to just log the route or set up a dummy handler.
-  app.get("/", (req, res) => {
-    res.send("Development mode: Frontend not served by Express.");
-  });
+  return result;
 }
-
-
-  
-  
