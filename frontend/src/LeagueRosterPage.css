@@ -23,12 +23,6 @@
   }
   
   /* Unassigned roster style */
-  .roster-container {
-    background-color: #f0f0f0;
-    padding: 8px;
-    width: 250px;
-    min-height: 200px;
-  }
   
   /* Style for individual player item in roster */
   .player-item {
@@ -39,11 +33,12 @@
   }
   
   /* Group container style */
-  .group-container {
-    background-color: #e0f7fa;
+  .roster-container, .group-container {
+    background-color: #f0f0f0;
     padding: 8px;
     width: 250px;
-    min-height: 200px;
+    height: 400px; /* Fixed height */
+    overflow-y: auto; /* Enable vertical scroll if needed */
   }
   
   /* Table for each group */

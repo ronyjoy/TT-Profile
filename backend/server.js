@@ -172,10 +172,11 @@ app.post("/api/playerProfiles", (req, res) => {
   res.status(201).json(newProfile);
 });
 
-// PUT: Update profile with rankings and comments
 app.put("/api/playerProfiles/:id", (req, res) => {
   const { id } = req.params;
   const { coachName, rankings, comments } = req.body;
+  console.log("Incoming update payload:", req.body);
+
   const players = loadPlayers();
   const player = players.find(p => p.id === id);
   if (!player) return res.status(404).json({ error: "Profile not found" });
@@ -186,12 +187,12 @@ app.put("/api/playerProfiles/:id", (req, res) => {
   if (comments !== undefined) {
     player.comments = comments;
   }
+
   savePlayers(players);
+  console.log("✅ Saved player data");
 
   if (coachName && rankings) {
     const history = loadHistory();
-    const existingEntry = history.find(h => h.playerId === id && h.coachRankings?.[coachName]);
-
     history.push({
       playerId: id,
       coachRankings: { [coachName]: rankings },
@@ -199,10 +200,12 @@ app.put("/api/playerProfiles/:id", (req, res) => {
       createdAt: new Date()
     });
     saveHistory(history);
+    console.log("✅ Saved ranking history");
   }
 
   res.json(player);
 });
+
 
 // GET: All profiles
 app.get("/api/playerProfiles", (req, res) => {
