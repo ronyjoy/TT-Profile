@@ -8,14 +8,7 @@ table {
     padding: 8px;
     text-align: center;
   }
-  
-  th:first-child, td:first-child {
-    max-width: 200px; /* ✅ Initial max width */
-    white-space: nowrap; /* ✅ Prevent wrapping */
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
+
   .black-cell {
     background-color: black;
     width: 50px;

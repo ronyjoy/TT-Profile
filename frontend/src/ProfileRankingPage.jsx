@@ -3,15 +3,9 @@ import { Link } from 'react-router-dom';
 import Slider from '@mui/material/Slider';
 import Header from './PlayerRatingHeader';
 import './App.css';
-
-const serverAddress = 'http://localhost:5001';
+import api from './api'
 
 const token = localStorage.getItem("token");
-
-fetch("http://localhost:5001/api/playerProfiles", {
-  method: "GET",
-  headers: { Authorization: `Bearer ${token}` },
-});
 
 
 // Define the attribute keys (must match your DB schema for ratings)
@@ -90,8 +84,8 @@ function ProfileRankingPage() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const response = await fetch(`${serverAddress}/api/playerProfiles`);
-        const data = await response.json();
+        const response = await api.get(`/api/playerProfiles`);
+        const data = response.data;
         const profilesObj = {};
         const initialRankings = {};
         const initialComments = {};
@@ -139,12 +133,12 @@ function ProfileRankingPage() {
       picture: newPicturePreview
     };
     try {
-      const response = await fetch(`${serverAddress}/api/playerProfiles`, {
+      const response =  await api.get(`/api/playerProfiles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProfile)
       });
-      const savedProfile = await response.json();
+      const savedProfile = response.data;
       const id = savedProfile._id || savedProfile.id;
       setProfiles(prev => ({ ...prev, [id]: savedProfile }));
       // Initialize with an empty object for coach-specific data.
@@ -169,7 +163,7 @@ function ProfileRankingPage() {
   };
 
   // Updated PUT endpoint call to update the coach-specific data.
-  const updateProfileForStudent = async (profileId) => {
+  const  updateProfileForStudent = async (profileId) => {
     if (selectedCoach === "academy") return; // Read-only in academy view
   
     const coachData = rankingValuesRef.current[profileId]?.[selectedCoach] || {};
@@ -182,13 +176,13 @@ function ProfileRankingPage() {
     console.log("Updating profile:", profileId, "Payload:", payload);
   
     try {
-      const response = await fetch(`${serverAddress}/api/playerProfiles/${profileId}`, {
+      const response =  await api.get(`/api/playerProfiles/${profileId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
   
-      const updatedProfile = await response.json();
+      const updatedProfile = response.data;
       console.log("Profile updated:", updatedProfile);
   
       setProfiles((prev) => ({

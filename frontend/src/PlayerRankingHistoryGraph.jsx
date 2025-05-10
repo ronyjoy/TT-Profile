@@ -39,7 +39,7 @@ function PlayerRankingHistoryGraph() {
       return;
     }
 
-    fetch(`http://localhost:5001/api/playerProfiles/${playerId}/rankingHistory`)
+    fetch(`/api/playerProfiles/${playerId}/rankingHistory`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch ranking history.");

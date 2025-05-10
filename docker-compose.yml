@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "5002:5001"
+      - "5001:5001"
     environment:
       - MONGO_USER=joyrony
       - MONGO_PASSWORD=ZrSnb72RAw8VvCv5

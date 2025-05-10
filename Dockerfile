@@ -1,42 +1,44 @@
-# Stage 1: Build the frontend (React app)
-FROM node:18 as build-stage
+# Stage 1: Build the React Frontend
+FROM node:18 as frontend-build
+WORKDIR /app/frontend
 
-# Set the working directory
-WORKDIR /app
-
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
-
-# Install all dependencies (both backend and frontend)
+# Copy frontend package files and install dependencies
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-# Copy the entire project
-COPY . .
-
-# Build the React app; this creates the "build" folder
+# Copy the rest of the frontend code and build the app
+COPY frontend ./
 RUN npm run build
 
-# Stage 2: Production - setup the backend
+# Stage 2: Prepare the Backend
+FROM node:18 as backend-build
+WORKDIR /app/backend
+
+# Copy backend package files and install dependencies
+COPY backend/package.json backend/package-lock.json ./
+RUN npm install --production
+
+# Copy the backend source code
+COPY backend ./
+
+# Ensure the public directory exists
+RUN mkdir -p public
+
+# Copy the built React app from the frontend stage to the backend's public directory
+COPY --from=frontend-build /app/frontend/build ./public
+
+# Stage 3: Final Production Image
 FROM node:18
+WORKDIR /app/backend
 
-# Set the working directory in the production container
-WORKDIR /app
+# Copy the prepared backend files from the previous stage
+COPY --from=backend-build /app/backend .
 
-# Copy backend files from the previous stage
-COPY --from=build-stage /app/backend ./backend
-
-# Copy the built React app into backend's public folder so Express can serve it.
-RUN mkdir -p ./backend/public
-COPY --from=build-stage /app/build ./backend/public
-
-# Copy package.json (for backend dependencies)
-COPY --from=build-stage /app/package.json ./
-
-# Install only production dependencies for the backend
-RUN cd backend && npm install --production
+# Set environment variable to production
+ENV NODE_ENV=production
 
 # Expose the backend port
 EXPOSE 5001
 
 # Start the backend server
-CMD ["node", "backend/server.js"]
+CMD ["node", "server.js"]
